@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Report #{{ report.id }} — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">🗂 Report #{{ report.id }}</div>
+    <div class="page-subtitle">
+      Submitted {{ (report.created_at or '')[:19] if report.created_at else '' }}
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('citizen.my_reports') }}" class="btn btn-secondary">← My Reports</a>
+  </div>
+</div>
+
+<!-- Status Timeline -->
+{% set all_statuses = ['Reported', 'Verified', 'Assigned', 'Collection Scheduled', 'Collected', 'Resolved'] %}
+{% set current_status = report.status | replace('_', ' ') | title if report.status else 'Reported' %}
+<div class="card section-gap">
+  <div class="card-title">📌 Current Status:
+    <span class="badge badge-{{ report.status | lower | replace(' ', '_') if report.status else 'reported' }}" style="font-size:.8rem;">
+      {{ current_status }}
+    </span>
+  </div>
+  <div class="status-timeline">
+    {% for step in all_statuses %}
+    {% set step_norm = step | lower | replace(' ', '_') %}
+    {% set cur_norm  = report.status | lower | replace(' ', '_') if report.status else 'reported' %}
+    {% set step_idx  = loop.index0 %}
+    {% set cur_idx   = all_statuses | map('lower') | map('replace', ' ', '_') | list %}
+    <span class="timeline-step {% if step_norm == cur_norm %}current{% elif loop.index0 < (all_statuses | map('lower') | list).index(report.status | lower if report.status else 'reported') + 1 %}done{% endif %}">
+      {% if step_norm == 'reported' %}📥
+      {% elif step_norm == 'verified' %}🔎
+      {% elif step_norm == 'assigned' %}👷
+      {% elif step_norm == 'collection_scheduled' %}📅
+      {% elif step_norm == 'collected' %}🚛
+      {% else %}✅{% endif %}
+      {{ step }}
+    </span>
+    {% if not loop.last %}<span class="timeline-arrow">→</span>{% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+<div class="two-col section-gap" style="align-items:start;">
+
+  <!-- Report Details -->
+  <div>
+    <div class="card section-gap">
+      <div class="card-title">📋 Report Details</div>
+      <dl class="detail-grid">
+        <div class="detail-field">
+          <dt>Category</dt>
+          <dd>{{ report.waste_category or '—' }}</dd>
+        </div>
+        <div class="detail-field">
+          <dt>Location Area</dt>
+          <dd>{{ report.location_area or '—' }}</dd>
+        </div>
+        <div class="detail-field">
+          <dt>Location Details</dt>
+          <dd>{{ report.location_details or '—' }}</dd>
+        </div>
+        <div class="detail-field">
+          <dt>Quantity</dt>
+          <dd>{{ report.quantity_estimate or '—' }}</dd>
+        </div>
+        <div class="detail-field">
+          <dt>Severity</dt>
+          <dd>
+            <span class="badge badge-severity-{{ report.severity | lower if report.severity else 'low' }}">
+              {{ report.severity | title if report.severity else '—' }}
+            </span>
+          </dd>
+        </div>
+        <div class="detail-field">
+          <dt>Priority</dt>
+          <dd>
+            <span class="badge badge-{{ report.priority | lower if report.priority else 'normal' }}">
+              {{ report.priority | title if report.priority else 'Normal' }}
+            </span>
+          </dd>
+        </div>
+        <div class="detail-field" style="grid-column:span 2;">
+          <dt>Description</dt>
+          <dd>{{ report.description or '—' }}</dd>
+        </div>
+        {% if report.notes %}
+        <div class="detail-field" style="grid-column:span 2;">
+          <dt>Notes</dt>
+          <dd>{{ report.notes }}</dd>
+        </div>
+        {% endif %}
+        {% if report.collection_date %}
+        <div class="detail-field">
+          <dt>Collection Date</dt>
+          <dd>{{ (report.collection_date or '')[:10] }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Uploaded Image -->
+    {% if report.photo_path %}
+    <div class="card section-gap">
+      <div class="card-title">📷 Uploaded Photo</div>
+      <img src="{{ url_for('static', filename=report.photo_path) }}"
+           alt="Waste report photo"
+           class="report-image">
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right column: AI Analysis + History -->
+  <div>
+
+    <!-- AI Analysis Box -->
+    {% if report.ai_analysis_done %}
+    <div class="card section-gap">
+      <div class="ai-box">
+        <div class="ai-box-title">🤖 AI Analysis Results</div>
+        <dl class="ai-grid">
+          {% if report.ai_category %}
+          <div class="ai-field">
+            <dt>Detected Category</dt>
+            <dd>{{ report.ai_category }}</dd>
+          </div>
+          {% endif %}
+          {% if report.ai_severity %}
+          <div class="ai-field">
+            <dt>AI Severity</dt>
+            <dd>
+              <span class="badge badge-severity-{{ report.ai_severity | lower }}">
+                {{ report.ai_severity | title }}
+              </span>
+            </dd>
+          </div>
+          {% endif %}
+          {% if report.ai_priority %}
+          <div class="ai-field">
+            <dt>AI Priority</dt>
+            <dd>
+              <span class="badge badge-{{ report.ai_priority | lower }}">
+                {{ report.ai_priority | title }}
+              </span>
+            </dd>
+          </div>
+          {% endif %}
+          {% if report.ai_recommended_action %}
+          <div class="ai-field" style="grid-column:span 2;">
+            <dt>Recommended Action</dt>
+            <dd>{{ report.ai_recommended_action }}</dd>
+          </div>
+          {% endif %}
+          {% if report.ai_confidence_score %}
+          <div class="ai-field">
+            <dt>Confidence</dt>
+            <dd>{{ (report.ai_confidence_score * 100) | round(1) }}%</dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+    {% else %}
+    <div class="card section-gap">
+      <div class="card-title">🤖 AI Analysis</div>
+      <div style="color:var(--text-muted);font-size:.85rem;padding:12px 0;">
+        ⏳ AI analysis is pending. This usually completes within a few minutes of submission.
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Status History -->
+    <div class="card">
+      <div class="card-title">🕒 Status History</div>
+      {% if status_history is defined and status_history %}
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        {% for entry in status_history %}
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:6px;"></div>
+          <div>
+            <div style="font-size:.85rem;">
+              <span class="badge badge-{{ entry.new_status | lower | replace(' ','_') }}">
+                {{ entry.new_status | replace('_',' ') | title }}
+              </span>
+            </div>
+            <div class="td-muted" style="margin-top:3px;">
+              {{ (entry.changed_at or '')[:19] if entry.changed_at else '' }}
+              {% if entry.note %} — {{ entry.note }}{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-muted">No history available yet.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

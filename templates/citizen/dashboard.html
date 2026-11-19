@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">👋 Welcome, {{ current_user.username }}!</div>
+    <div class="page-subtitle">{{ current_user.area or 'Bengaluru' }} — Citizen Dashboard</div>
+  </div>
+  <a href="{{ url_for('citizen.report_waste') }}" class="btn btn-primary btn-lg">
+    📸 Report Waste
+  </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="stats-grid section-gap">
+  <div class="stat-card">
+    <div class="stat-icon green">📋</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.total if stats is defined else '—' }}</div>
+      <div class="stat-label">Total Reports</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">⏳</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.pending if stats is defined else '—' }}</div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">🔄</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.in_progress if stats is defined else '—' }}</div>
+      <div class="stat-label">In Progress</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✅</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.resolved if stats is defined else '—' }}</div>
+      <div class="stat-label">Resolved</div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Flow -->
+<div class="card section-gap">
+  <div class="card-title">📌 Report Status Flow</div>
+  <div class="status-timeline">
+    <span class="timeline-step done">📥 Reported</span>
+    <span class="timeline-arrow">→</span>
+    <span class="timeline-step done">🔎 Verified</span>
+    <span class="timeline-arrow">→</span>
+    <span class="timeline-step">👷 Assigned</span>
+    <span class="timeline-arrow">→</span>
+    <span class="timeline-step">📅 Scheduled</span>
+    <span class="timeline-arrow">→</span>
+    <span class="timeline-step">🚛 Collected</span>
+    <span class="timeline-arrow">→</span>
+    <span class="timeline-step">✅ Resolved</span>
+  </div>
+  <p class="text-muted mt-4">Your reports are automatically processed by our AI agent and assigned to collection teams.</p>
+</div>
+
+<div class="two-col section-gap" style="align-items:start;">
+
+  <!-- Recent Reports -->
+  <div class="card">
+    <div class="card-title">
+      📄 My Recent Reports
+      <a href="{{ url_for('citizen.my_reports') }}" class="btn btn-secondary btn-sm" style="margin-left:auto;">View All</a>
+    </div>
+    {% if recent_reports is defined and recent_reports %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Category</th>
+            <th>Area</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_reports %}
+          <tr>
+            <td class="td-muted">#{{ r.id }}</td>
+            <td>{{ r.waste_category or '—' }}</td>
+            <td>{{ r.location_area or '—' }}</td>
+            <td>
+              <span class="badge badge-{{ r.status | lower | replace(' ', '_') }}">
+                {{ r.status | replace('_', ' ') | title }}
+              </span>
+            </td>
+            <td class="td-muted">{{ (r.created_at or '')[:10] }}</td>
+            <td>
+              <a href="{{ url_for('citizen.report_detail', report_id=r.report_id) }}" class="btn btn-secondary btn-sm">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center" style="padding:30px 0;color:var(--text-muted);">
+      <div style="font-size:2.5rem;margin-bottom:8px;">🗑️</div>
+      <p>No reports yet.</p>
+      <a href="{{ url_for('citizen.report_waste') }}" class="btn btn-primary mt-4">Report Waste Now</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Notifications -->
+  <div class="card">
+    <div class="card-title">
+      🔔 Recent Notifications
+      <a href="{{ url_for('citizen.notifications') }}" class="btn btn-secondary btn-sm" style="margin-left:auto;">View All</a>
+    </div>
+    {% if notifications is defined and notifications %}
+    <div class="notif-list">
+      {% for n in notifications %}
+      <div class="notif-item {{ 'unread' if not n.is_read }}">
+        <span class="notif-dot"></span>
+        <div style="flex:1;">
+          <div>{{ n.message }}</div>
+          <div class="notif-time">{{ (n.created_at or '')[:19] if n.created_at else '' }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center" style="padding:30px 0;color:var(--text-muted);">
+      <div style="font-size:2rem;margin-bottom:8px;">🔕</div>
+      <p>No new notifications.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

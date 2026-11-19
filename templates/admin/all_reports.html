@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}All Reports — Admin — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">📋 All Reports</div>
+    <div class="page-subtitle">{{ total_count if total_count is defined else '' }} total reports</div>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary btn-sm">📈 Analytics</a>
+    <button class="btn btn-secondary btn-sm" onclick="alert('Export feature coming soon.')">⬇ Export CSV</button>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<form method="GET" action="{{ url_for('admin.all_reports') }}" id="filterForm">
+  <div class="filter-bar section-gap">
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-control" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for s in ['Reported','Verified','Assigned','Collection Scheduled','Collected','Resolved'] %}
+        <option value="{{ s }}" {{ 'selected' if request.args.get('status') == s }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select name="category" class="form-control" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% if waste_categories is defined %}
+          {% for cat in waste_categories %}
+          <option value="{{ cat.id }}" {{ 'selected' if request.args.get('category')|int == cat.id }}>{{ cat.name }}</option>
+          {% endfor %}
+        {% endif %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Area</label>
+      <select name="area" class="form-control" onchange="this.form.submit()">
+        <option value="">All Areas</option>
+        {% set areas = ['Koramangala','Indiranagar','Whitefield','Yelahanka','Hebbal','Jayanagar',
+                        'Bannerghatta','HSR Layout','Rajajinagar','Shivajinagar',
+                        'Electronic City','Bellandur','Other'] %}
+        {% for a in areas %}
+        <option value="{{ a }}" {{ 'selected' if request.args.get('area') == a }}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Priority</label>
+      <select name="priority" class="form-control" onchange="this.form.submit()">
+        <option value="">All Priorities</option>
+        {% for p in ['low','normal','high','urgent'] %}
+        <option value="{{ p }}" {{ 'selected' if request.args.get('priority') == p }}>{{ p | title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">From Date</label>
+      <input type="date" name="date_from" class="form-control"
+             value="{{ request.args.get('date_from', '') }}" onchange="this.form.submit()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">To Date</label>
+      <input type="date" name="date_to" class="form-control"
+             value="{{ request.args.get('date_to', '') }}" onchange="this.form.submit()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Search</label>
+      <input type="text" name="q" class="form-control" placeholder="ID, citizen, description…"
+             value="{{ request.args.get('q', '') }}">
+    </div>
+    <div class="form-group" style="justify-content:flex-end;align-self:flex-end;flex-direction:row;gap:6px;">
+      <button type="submit" class="btn btn-primary btn-sm">🔍 Filter</button>
+      <a href="{{ url_for('admin.all_reports') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </div>
+</form>
+
+<!-- Bulk Status Update -->
+<form method="POST" action="{{ url_for('admin.bulk_update') if 'admin.bulk_update' in [] else '#' }}"
+      id="bulkForm" data-status-form>
+  {% if csrf_token is defined %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% endif %}
+
+  <div class="card">
+    <!-- Bulk action bar -->
+    <div class="flex gap-2 items-center mb-4" style="flex-wrap:wrap;">
+      <select name="new_status" class="form-control" style="max-width:200px;">
+        <option value="">— Bulk Update Status —</option>
+        {% for s in ['Verified','Assigned','Collection Scheduled','Collected','Resolved'] %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-warning btn-sm"
+              data-confirm="Apply this status to all selected reports?">
+        Apply to Selected
+      </button>
+      <span class="text-muted text-sm" id="selectedCount" style="margin-left:8px;">0 selected</span>
+    </div>
+
+    {% if reports is defined and reports %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll" title="Select all"></th>
+            <th>ID</th>
+            <th>Citizen</th>
+            <th>Category</th>
+            <th>Area</th>
+            <th>Severity</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>AI Done</th>
+            <th>Submitted</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reports %}
+          <tr>
+            <td>
+              <input type="checkbox" name="report_ids" value="{{ r.id }}"
+                     class="row-check" onchange="updateCount()">
+            </td>
+            <td class="td-muted font-bold">#{{ r.id }}</td>
+            <td>{{ r.citizen_username if r.citizen_username is defined else (r.user_id or '—') }}</td>
+            <td>{{ r.waste_category or '—' }}</td>
+            <td>{{ r.location_area or '—' }}</td>
+            <td>
+              <span class="badge badge-severity-{{ r.severity | lower if r.severity else 'low' }}">
+                {{ r.severity | title if r.severity else '—' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-{{ r.priority | lower if r.priority else 'normal' }}">
+                {{ r.priority | title if r.priority else 'Normal' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-{{ r.status | lower | replace(' ','_') if r.status else 'reported' }}">
+                {{ r.status | replace('_',' ') | title if r.status else 'Reported' }}
+              </span>
+            </td>
+            <td>
+              {% if r.ai_analysis_done %}
+              <span class="badge badge-open">✓ Done</span>
+              {% else %}
+              <span class="badge badge-pending">Pending</span>
+              {% endif %}
+            </td>
+            <td class="td-muted">{{ (r.created_at or '')[:10] }}</td>
+            <td>
+              <a href="{{ url_for('admin.report_manage', report_id=r.id) }}" class="btn btn-primary btn-sm">Manage</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination is defined %}
+    <div class="flex gap-2 items-center mt-4" style="justify-content:flex-end;font-size:.82rem;color:var(--text-muted);">
+      {% if pagination.has_prev %}
+      <a href="{{ url_for('admin.all_reports', page=pagination.prev_num, **request.args) }}" class="btn btn-secondary btn-sm">← Prev</a>
+      {% endif %}
+      <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+      {% if pagination.has_next %}
+      <a href="{{ url_for('admin.all_reports', page=pagination.next_num, **request.args) }}" class="btn btn-secondary btn-sm">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center text-muted" style="padding:40px;">
+      No reports found matching the current filters.
+    </div>
+    {% endif %}
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var selectAll = document.getElementById('selectAll');
+if (selectAll) {
+  selectAll.addEventListener('change', function() {
+    document.querySelectorAll('.row-check').forEach(function(cb) { cb.checked = selectAll.checked; });
+    updateCount();
+  });
+}
+function updateCount() {
+  var n = document.querySelectorAll('.row-check:checked').length;
+  var el = document.getElementById('selectedCount');
+  if (el) el.textContent = n + ' selected';
+}
+</script>
+{% endblock %}

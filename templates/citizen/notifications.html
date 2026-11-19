@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">🔔 Notifications</h1>
+  <a href="{{ url_for('citizen.dashboard') }}" class="btn btn-secondary btn-sm">← Dashboard</a>
+</div>
+
+{% if notifications %}
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    <ul style="list-style:none;margin:0;padding:0;">
+      {% for n in notifications %}
+      <li style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.3rem;">
+          {% if n.type == 'success' %}✅
+          {% elif n.type == 'warning' %}⚠️
+          {% elif n.type == 'error' %}❌
+          {% else %}ℹ️{% endif %}
+        </span>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:var(--text);">{{ n.title }}</div>
+          <div style="font-size:.88rem;color:var(--text-muted);margin-top:2px;">{{ n.message }}</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">{{ n.created_at }}</div>
+        </div>
+        {% if n.related_report_id %}
+        <a href="{{ url_for('citizen.report_detail', report_id=n.related_report_id) }}" class="btn btn-secondary btn-sm">View</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:40px;">
+    <div style="font-size:2.5rem;margin-bottom:12px;">🔔</div>
+    <div style="color:var(--text-muted);">No notifications yet.</div>
+    <a href="{{ url_for('citizen.report_waste') }}" class="btn btn-primary mt-4">Report Waste</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

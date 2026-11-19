@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found — Waste Wise Bengaluru</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="error-wrapper">
+  <div style="font-size:4rem;margin-bottom:8px;">🗑️</div>
+  <div class="error-code">404</div>
+  <div class="error-msg">Page Not Found</div>
+  <div class="error-hint">
+    The page you're looking for has been collected or never existed.
+  </div>
+  <div class="flex gap-3" style="justify-content:center;">
+    <a href="{{ url_for('citizen.dashboard') if current_user.is_authenticated and not current_user.is_admin() else url_for('admin.dashboard') if current_user.is_authenticated and current_user.is_admin() else url_for('auth.login') }}"
+       class="btn btn-primary">🏠 Go Home</a>
+    <a href="javascript:history.back()" class="btn btn-secondary">← Go Back</a>
+  </div>
+  <div style="margin-top:32px;color:var(--text-muted);font-size:.78rem;">
+    Waste Wise Bengaluru — BBMP Smart City Initiative
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

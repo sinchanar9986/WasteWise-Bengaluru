@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Waste Wise Bengaluru{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<div class="disclaimer-banner">
+  ⚠ SIMULATED DATA — Not verified BBMP operational data. For demonstration purposes only.
+</div>
+
+<div class="app-wrapper">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <span>🌿</span>
+      <span>Waste Wise</span>
+    </div>
+
+    <div class="sidebar-section">
+      {% if current_user.is_authenticated %}
+        {% if current_user.is_admin() %}
+        <!-- Admin Navigation -->
+        <div class="sidebar-section-label">Admin Panel</div>
+        <nav>
+          <a href="{{ url_for('admin.dashboard') }}"
+             class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+            <span class="nav-icon">📊</span> Dashboard
+          </a>
+          <a href="{{ url_for('admin.all_reports') }}"
+             class="{% if request.endpoint == 'admin.all_reports' %}active{% endif %}">
+            <span class="nav-icon">📋</span> All Reports
+          </a>
+          <a href="{{ url_for('admin.analytics') }}"
+             class="{% if request.endpoint == 'admin.analytics' %}active{% endif %}">
+            <span class="nav-icon">📈</span> Analytics
+          </a>
+          <a href="{{ url_for('admin.users') }}"
+             class="{% if request.endpoint == 'admin.users' %}active{% endif %}">
+            <span class="nav-icon">👥</span> Users
+          </a>
+          <a href="{{ url_for('admin.agent_logs') }}"
+             class="{% if request.endpoint == 'admin.agent_logs' %}active{% endif %}">
+            <span class="nav-icon">🤖</span> Agent Logs
+          </a>
+          <a href="{{ url_for('admin.audit_logs') }}"
+             class="{% if request.endpoint == 'admin.audit_logs' %}active{% endif %}">
+            <span class="nav-icon">🔍</span> Audit Logs
+          </a>
+        </nav>
+        {% else %}
+        <!-- Citizen Navigation -->
+        <div class="sidebar-section-label">Citizen Portal</div>
+        <nav>
+          <a href="{{ url_for('citizen.dashboard') }}"
+             class="{% if request.endpoint == 'citizen.dashboard' %}active{% endif %}">
+            <span class="nav-icon">🏠</span> Dashboard
+          </a>
+          <a href="{{ url_for('citizen.report_waste') }}"
+             class="{% if request.endpoint == 'citizen.report_waste' %}active{% endif %}">
+            <span class="nav-icon">📸</span> Report Waste
+          </a>
+          <a href="{{ url_for('citizen.my_reports') }}"
+             class="{% if request.endpoint == 'citizen.my_reports' %}active{% endif %}">
+            <span class="nav-icon">📄</span> My Reports
+          </a>
+          <a href="{{ url_for('citizen.notifications') }}"
+             class="{% if request.endpoint == 'citizen.notifications' %}active{% endif %}">
+            <span class="nav-icon">🔔</span> Notifications
+          </a>
+        </nav>
+        <div class="sidebar-section-label" style="margin-top:12px;">Info</div>
+        <nav>
+          <a href="/legacy">
+            <span class="nav-icon">🗺️</span> Allocation Tool
+          </a>
+        </nav>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="sidebar-footer">
+      Waste Wise Bengaluru v1.0<br>
+      <span style="font-size:.7rem;">BBMP Smart City Initiative</span>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN AREA ===== -->
+  <div class="main-area">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+        <span class="header-title">🌿 Waste Wise Bengaluru</span>
+      </div>
+      <div class="header-right">
+        {% if current_user.is_authenticated %}
+        <!-- Notification Bell -->
+        <button class="notif-btn" id="notifBtn" title="Notifications"
+          data-url="{{ url_for('citizen.notifications') if not current_user.is_admin() else url_for('admin.agent_logs') }}">
+          🔔
+          <span class="notif-badge" id="notifBadge"
+                {% if unread_count is defined and unread_count == 0 %}style="display:none"{% endif %}>
+            {{ unread_count if unread_count is defined else '' }}
+          </span>
+        </button>
+
+        <!-- User chip -->
+        <div class="user-chip">
+          <div class="user-avatar">{{ current_user.username[0].upper() }}</div>
+          <span>{{ current_user.username }}</span>
+          <span class="badge {% if current_user.is_admin() %}badge-reported{% else %}badge-verified{% endif %}" style="font-size:.65rem;">
+            {{ current_user.role | title }}
+          </span>
+        </div>
+
+        <!-- Logout -->
+        <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+        {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Login</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div style="padding:12px 24px 0;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category if category in ['success','error','warning','info','danger'] else 'info' }}" data-autohide="4000">
+          <span>{{ '✅' if category == 'success' else ('❌' if category in ['error','danger'] else ('⚠️' if category == 'warning' else 'ℹ️')) }}</span>
+          <span>{{ message }}</span>
+          <button class="alert-dismiss" aria-label="Dismiss">✕</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div><!-- /.main-area -->
+
+</div><!-- /.app-wrapper -->
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Waste Wise Bengaluru</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;width:min(420px,92vw);">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category if category in ['success','error','warning','info','danger'] else 'info' }}" data-autohide="5000">
+      <span>{{ message }}</span>
+      <button class="alert-dismiss">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🌿</div>
+      <span class="auth-logo-name">Waste Wise Bengaluru</span>
+      <div style="font-size:.75rem;color:#6b7280;margin-top:3px;">BBMP Smart Waste Management</div>
+    </div>
+
+    <h2 class="auth-title">Sign In</h2>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" data-validate>
+      {% if csrf_token is defined %}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% endif %}
+
+      <div class="form-group mb-4">
+        <label class="form-label" for="username">Username or Email</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="form-control"
+          placeholder="Enter your username"
+          value="{{ request.form.get('username', '') }}"
+          required
+          autofocus>
+        <span class="form-error">Username is required.</span>
+      </div>
+
+      <div class="form-group mb-4" style="margin-bottom:20px;">
+        <label class="form-label" for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Enter your password"
+          required>
+        <span class="form-error">Password is required.</span>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full btn-lg" style="width:100%;justify-content:center;">
+        🔐 Sign In
+      </button>
+    </form>
+
+    <div class="demo-hint">
+      <strong>Demo credentials:</strong><br>
+      Admin: <code>admin</code> / <code>Admin@123</code><br>
+      Citizen: <code>citizen1</code> / <code>Citizen@123</code>
+    </div>
+
+    <div class="auth-footer-link">
+      Don't have an account?
+      <a href="{{ url_for('auth.register') }}">Register here</a>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

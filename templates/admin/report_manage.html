@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Manage Report #{{ report.id }} — Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">🛠 Manage Report #{{ report.id }}</div>
+    <div class="page-subtitle">
+      Submitted {{ (report.created_at or '')[:19] if report.created_at else '' }}
+      by {{ report.citizen_username if report.citizen_username is defined else 'citizen #' ~ report.user_id }}
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.all_reports') }}" class="btn btn-secondary">← All Reports</a>
+  </div>
+</div>
+
+<div class="two-col section-gap" style="align-items:start;">
+
+  <!-- Left: Details + AI -->
+  <div>
+
+    <!-- Current Status -->
+    <div class="card section-gap">
+      <div class="card-title">
+        📌 Current Status:
+        <span class="badge badge-{{ report.status | lower | replace(' ','_') if report.status else 'reported' }}" style="font-size:.82rem;">
+          {{ report.status | replace('_',' ') | title if report.status else 'Reported' }}
+        </span>
+      </div>
+      {% set all_statuses = ['Reported','Verified','Assigned','Collection Scheduled','Collected','Resolved'] %}
+      <div class="status-timeline">
+        {% for step in all_statuses %}
+        <span class="timeline-step
+          {% if step | lower | replace(' ','_') == (report.status | lower | replace(' ','_') if report.status else 'reported') %}current
+          {% elif loop.index0 < (all_statuses | map('lower') | list).index(report.status | lower if report.status else 'reported') + 1 %}done
+          {% endif %}">
+          {{ step }}
+        </span>
+        {% if not loop.last %}<span class="timeline-arrow">→</span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Report Details -->
+    <div class="card section-gap">
+      <div class="card-title">📋 Report Details</div>
+      <dl class="detail-grid">
+        <div class="detail-field"><dt>Category</dt><dd>{{ report.waste_category or '—' }}</dd></div>
+        <div class="detail-field"><dt>Area</dt><dd>{{ report.location_area or '—' }}</dd></div>
+        <div class="detail-field"><dt>Location Details</dt><dd>{{ report.location_details or '—' }}</dd></div>
+        <div class="detail-field"><dt>Quantity</dt><dd>{{ report.quantity_estimate or '—' }}</dd></div>
+        <div class="detail-field">
+          <dt>Severity</dt>
+          <dd><span class="badge badge-severity-{{ report.severity | lower if report.severity else 'low' }}">
+            {{ report.severity | title if report.severity else '—' }}</span></dd>
+        </div>
+        <div class="detail-field">
+          <dt>Priority</dt>
+          <dd><span class="badge badge-{{ report.priority | lower if report.priority else 'normal' }}">
+            {{ report.priority | title if report.priority else 'Normal' }}</span></dd>
+        </div>
+        <div class="detail-field" style="grid-column:span 2;"><dt>Description</dt><dd>{{ report.description or '—' }}</dd></div>
+        {% if report.notes %}<div class="detail-field" style="grid-column:span 2;"><dt>Notes</dt><dd>{{ report.notes }}</dd></div>{% endif %}
+        {% if report.collection_date %}
+        <div class="detail-field"><dt>Collection Date</dt><dd>{{ report.(collection_date or '')[:10] }}</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Photo -->
+    {% if report.photo_path %}
+    <div class="card section-gap">
+      <div class="card-title">📷 Photo</div>
+      <img src="{{ url_for('static', filename=report.photo_path) }}" alt="Waste photo" class="report-image">
+    </div>
+    {% endif %}
+
+    <!-- AI Analysis -->
+    {% if report.ai_analysis_done %}
+    <div class="card section-gap">
+      <div class="ai-box">
+        <div class="ai-box-title">🤖 AI Analysis Results</div>
+        <dl class="ai-grid">
+          {% if report.ai_category %}<div class="ai-field"><dt>Detected Category</dt><dd>{{ report.ai_category }}</dd></div>{% endif %}
+          {% if report.ai_severity %}<div class="ai-field"><dt>AI Severity</dt><dd><span class="badge badge-severity-{{ report.ai_severity | lower }}">{{ report.ai_severity | title }}</span></dd></div>{% endif %}
+          {% if report.ai_priority %}<div class="ai-field"><dt>AI Priority</dt><dd><span class="badge badge-{{ report.ai_priority | lower }}">{{ report.ai_priority | title }}</span></dd></div>{% endif %}
+          {% if report.ai_confidence_score %}<div class="ai-field"><dt>Confidence</dt><dd>{{ (report.ai_confidence_score * 100) | round(1) }}%</dd></div>{% endif %}
+          {% if report.ai_recommended_action %}<div class="ai-field" style="grid-column:span 2;"><dt>Recommended Action</dt><dd>{{ report.ai_recommended_action }}</dd></div>{% endif %}
+        </dl>
+      </div>
+    </div>
+    {% else %}
+    <div class="card section-gap">
+      <div class="card-title">🤖 AI Analysis</div>
+      <span class="text-muted text-sm">AI analysis pending or not yet run.</span>
+    </div>
+    {% endif %}
+
+  </div><!-- /left col -->
+
+  <!-- Right: Status Update + History -->
+  <div>
+
+    <!-- Status Update Form -->
+    <div class="card section-gap">
+      <div class="card-title">✏️ Update Status</div>
+      <form method="POST"
+            action="{{ url_for('admin.report_manage', report_id=report.id) }}"
+            data-status-form>
+        {% if csrf_token is defined %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+        <div class="form-group mb-4" style="margin-bottom:14px;">
+          <label class="form-label" for="new_status">New Status <span class="required">*</span></label>
+          <select id="new_status" name="new_status" class="form-control" required>
+            <option value="">— Select status —</option>
+            {% for s in ['Reported','Verified','Assigned','Collection Scheduled','Collected','Resolved'] %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group mb-4" style="margin-bottom:14px;">
+          <label class="form-label" for="collection_date">Collection Date (optional)</label>
+          <input type="date" id="collection_date" name="collection_date" class="form-control"
+                 value="{{ (report.collection_date or '')[:19] if report.collection_date else '' }}">
+        </div>
+        <div class="form-group mb-4" style="margin-bottom:16px;">
+          <label class="form-label" for="admin_notes">Notes</label>
+          <textarea id="admin_notes" name="admin_notes" class="form-control" rows="3"
+                    placeholder="Add notes about this status change…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-full" style="width:100%;justify-content:center;">
+          💾 Update Status
+        </button>
+      </form>
+    </div>
+
+    <!-- Audit / History Trail -->
+    <div class="card">
+      <div class="card-title">🕒 Change History</div>
+      {% if audit_trail is defined and audit_trail %}
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        {% for entry in audit_trail %}
+        <div style="display:flex;gap:12px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid #f0fdf4;">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:6px;"></div>
+          <div style="flex:1;">
+            <div style="font-size:.84rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              {% if entry.old_status %}
+              <span class="badge badge-{{ entry.old_status | lower | replace(' ','_') }}">{{ entry.old_status }}</span>
+              <span style="color:var(--text-muted);">→</span>
+              {% endif %}
+              <span class="badge badge-{{ entry.new_status | lower | replace(' ','_') if entry.new_status else 'reported' }}">
+                {{ entry.new_status | replace('_',' ') | title if entry.new_status else '?' }}
+              </span>
+            </div>
+            <div class="td-muted" style="margin-top:4px;font-size:.78rem;">
+              {% if entry.changed_by_username is defined %}by {{ entry.changed_by_username }}{% endif %}
+              — {{ (entry.changed_at or '')[:19] if entry.changed_at else '' }}
+            </div>
+            {% if entry.notes %}
+            <div style="font-size:.8rem;color:var(--text);margin-top:3px;">📝 {{ entry.notes }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-muted text-sm">No change history available.</div>
+      {% endif %}
+    </div>
+
+  </div><!-- /right col -->
+
+</div>
+{% endblock %}

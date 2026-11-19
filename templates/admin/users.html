@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}User Management — Admin — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">👥 Users</div>
+    <div class="page-subtitle">Manage registered citizens and administrators</div>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">← Dashboard</a>
+  </div>
+</div>
+
+<!-- Filter / Search -->
+<form method="GET" action="{{ url_for('admin.users') }}">
+  <div class="filter-bar section-gap">
+    <div class="form-group">
+      <label class="form-label">Role</label>
+      <select name="role" class="form-control" onchange="this.form.submit()">
+        <option value="">All Roles</option>
+        <option value="citizen" {{ 'selected' if request.args.get('role') == 'citizen' }}>Citizen</option>
+        <option value="admin"   {{ 'selected' if request.args.get('role') == 'admin' }}>Admin</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Area</label>
+      <select name="area" class="form-control" onchange="this.form.submit()">
+        <option value="">All Areas</option>
+        {% set areas = ['Koramangala','Indiranagar','Whitefield','Yelahanka','Hebbal','Jayanagar',
+                        'Bannerghatta','HSR Layout','Rajajinagar','Shivajinagar',
+                        'Electronic City','Bellandur','Other'] %}
+        {% for a in areas %}
+        <option value="{{ a }}" {{ 'selected' if request.args.get('area') == a }}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Active</label>
+      <select name="active" class="form-control" onchange="this.form.submit()">
+        <option value="">All</option>
+        <option value="1" {{ 'selected' if request.args.get('active') == '1' }}>Active</option>
+        <option value="0" {{ 'selected' if request.args.get('active') == '0' }}>Inactive</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Search</label>
+      <input type="text" name="q" class="form-control" placeholder="Username or email…"
+             value="{{ request.args.get('q','') }}">
+    </div>
+    <div class="form-group" style="justify-content:flex-end;align-self:flex-end;flex-direction:row;gap:6px;">
+      <button type="submit" class="btn btn-primary btn-sm">🔍 Search</button>
+      <a href="{{ url_for('admin.users') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  {% if users is defined and users %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Full Name</th>
+          <th>Role</th>
+          <th>Area</th>
+          <th>Active</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="td-muted">{{ u.id }}</td>
+          <td class="font-bold">{{ u.username }}</td>
+          <td class="td-muted">{{ u.email or '—' }}</td>
+          <td>{{ u.full_name or '—' }}</td>
+          <td>
+            <span class="badge {% if u.role == 'admin' %}badge-reported{% else %}badge-verified{% endif %}">
+              {{ u.role | title if u.role else 'Citizen' }}
+            </span>
+          </td>
+          <td>{{ u.area or '—' }}</td>
+          <td>
+            {% if u.is_active %}
+            <span class="badge badge-open">Active</span>
+            {% else %}
+            <span class="badge badge-closed">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="td-muted">{{ (u.created_at or '')[:10] }}</td>
+          <td>
+            <div class="flex gap-2">
+              {% if u.id != current_user.id %}
+              <form method="POST"
+                    action="{{ url_for('admin.toggle_user', user_id=u.id) if 'admin.toggle_user' in [] else '#' }}"
+                    style="margin:0;">
+                {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                <button type="submit" class="btn btn-sm {{ 'btn-warning' if u.is_active else 'btn-success' }}"
+                        data-confirm="{{ 'Deactivate' if u.is_active else 'Activate' }} user {{ u.username }}?">
+                  {{ '🚫 Deactivate' if u.is_active else '✅ Activate' }}
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted text-sm">(you)</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination is defined %}
+  <div class="flex gap-2 items-center mt-4" style="justify-content:flex-end;font-size:.82rem;color:var(--text-muted);">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('admin.users', page=pagination.prev_num, **request.args) }}" class="btn btn-secondary btn-sm">← Prev</a>
+    {% endif %}
+    <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+    {% if pagination.has_next %}
+    <a href="{{ url_for('admin.users', page=pagination.next_num, **request.args) }}" class="btn btn-secondary btn-sm">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="text-center text-muted" style="padding:40px;">No users found matching the filters.</div>
+  {% endif %}
+</div>
+{% endblock %}

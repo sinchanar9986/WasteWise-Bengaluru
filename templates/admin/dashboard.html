@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">📊 Admin Dashboard</div>
+    <div class="page-subtitle">Waste Wise Bengaluru — Operations Overview</div>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.all_reports') }}" class="btn btn-secondary btn-sm">All Reports</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary btn-sm">Analytics →</a>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="stats-grid section-gap">
+  <div class="stat-card">
+    <div class="stat-icon blue">📋</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.total if stats is defined else '0' }}</div>
+      <div class="stat-label">Total Reports</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">🔎</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.pending_verification if stats is defined else '0' }}</div>
+      <div class="stat-label">Pending Verification</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon cyan">👷</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.assigned if stats is defined else '0' }}</div>
+      <div class="stat-label">Assigned</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">📅</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.scheduled if stats is defined else '0' }}</div>
+      <div class="stat-label">Scheduled</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✅</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.resolved_today if stats is defined else '0' }}</div>
+      <div class="stat-label">Resolved Today</div>
+      <div class="stat-trend up">↑ Today</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">🏭</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.active_facilities if stats is defined else '0' }}</div>
+      <div class="stat-label">Active Facilities</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="charts-grid section-gap">
+
+  <!-- Category Distribution -->
+  <div class="chart-container">
+    <div class="chart-title">📦 Reports by Category</div>
+    {% if category_chart is defined and category_chart %}
+    <div id="catChart" style="width:100%;height:160px;"></div>
+    {% else %}
+    <div id="catChart" style="width:100%;height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.82rem;">
+      No data available
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Status Distribution -->
+  <div class="chart-container">
+    <div class="chart-title">🔄 Reports by Status</div>
+    {% if status_chart is defined and status_chart %}
+    <!-- Inline SVG donut/bar for status -->
+    <svg width="100%" height="160" viewBox="0 0 320 160">
+      {% set colors = ['#3b82f6','#06b6d4','#f59e0b','#f97316','#10b981','#059669'] %}
+      {% set statuses = status_chart %}
+      {% set total_s = statuses | sum(attribute='count') %}
+      {% set bar_w = 32 %}
+      {% set spacing = 320 // (statuses|length) %}
+      {% set max_v = statuses | map(attribute='count') | max %}
+      {% for s in statuses %}
+      {% set bh = ((s.count / max_v) * 110) | int if max_v > 0 else 0 %}
+      {% set x = loop.index0 * spacing + (spacing - bar_w)//2 %}
+      {% set y = 130 - bh %}
+      <rect x="{{ x }}" y="{{ y }}" width="{{ bar_w }}" height="{{ bh }}"
+            fill="{{ colors[loop.index0 % colors|length] }}" rx="4"/>
+      <text x="{{ x + bar_w//2 }}" y="148" text-anchor="middle" font-size="8" fill="#6b7280">
+        {{ s.status | truncate(8, True, '') if s.status else '' }}
+      </text>
+      <text x="{{ x + bar_w//2 }}" y="{{ y - 3 }}" text-anchor="middle" font-size="9" fill="#374151">
+        {{ s.count }}
+      </text>
+      {% endfor %}
+    </svg>
+    {% else %}
+    <div style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--text-muted);font-size:.82rem;">
+      No data available
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Weekly Trend -->
+  <div class="chart-container">
+    <div class="chart-title">📈 Reports — Last 7 Days</div>
+    {% if weekly_chart is defined and weekly_chart %}
+    <div id="weeklyChart" style="width:100%;height:140px;"></div>
+    {% else %}
+    <div style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);font-size:.82rem;">
+      No data available
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="two-col section-gap" style="align-items:start;">
+
+  <!-- Recent Reports Table -->
+  <div class="card" style="grid-column:span 2 / span 2;">
+    <div class="card-title">
+      📋 Recent Reports (Last 10)
+      <a href="{{ url_for('admin.all_reports') }}" class="btn btn-secondary btn-sm" style="margin-left:auto;">View All</a>
+    </div>
+    {% if recent_reports is defined and recent_reports %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Citizen</th>
+            <th>Category</th>
+            <th>Area</th>
+            <th>Severity</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_reports %}
+          <tr>
+            <td class="td-muted font-bold">{{ r.report_id or r.id }}</td>
+            <td>{{ r.citizen_username if r.citizen_username is defined else r.user_id }}</td>
+            <td>{{ r.waste_category or '—' }}</td>
+            <td>{{ r.location_area or '—' }}</td>
+            <td>
+              <span class="badge badge-severity-{{ r.severity | lower if r.severity else 'low' }}">
+                {{ r.severity | title if r.severity else '—' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-{{ r.status | lower | replace(' ','_') if r.status else 'reported' }}">
+                {{ r.status | replace('_',' ') | title if r.status else 'Reported' }}
+              </span>
+            </td>
+            <td class="td-muted">{{ (r.created_at or '')[:10] }}</td>
+            <td>
+              <a href="{{ url_for('admin.report_manage', report_id=r.report_id) }}" class="btn btn-primary btn-sm">Manage</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted" style="padding:30px;">No reports yet.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="two-col section-gap" style="align-items:start;">
+
+  <!-- AI Agent Activity -->
+  <div class="card">
+    <div class="card-title">
+      🤖 AI Agent Activity
+      <a href="{{ url_for('admin.agent_logs') }}" class="btn btn-secondary btn-sm" style="margin-left:auto;">All Logs</a>
+    </div>
+    {% if agent_logs is defined and agent_logs %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Action</th>
+            <th>Report</th>
+            <th>Status</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in agent_logs %}
+          <tr>
+            <td>{{ log.agent_name or '—' }}</td>
+            <td>{{ log.action or '—' }}</td>
+            <td>{% if log.report_id %}#{{ log.report_id }}{% else %}—{% endif %}</td>
+            <td>
+              <span class="badge badge-{{ 'open' if log.status == 'success' else 'closed' }}">
+                {{ log.status | title if log.status else '—' }}
+              </span>
+            </td>
+            <td class="td-muted">{{ (log.created_at or '')[:16] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-muted text-sm" style="padding:12px 0;">No agent activity logged yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- System Status -->
+  <div class="card">
+    <div class="card-title">⚙️ System Status</div>
+    <div class="sys-status-row">
+      <div class="sys-status-item">
+        <span class="status-dot ok"></span>
+        Database Online
+      </div>
+      <div class="sys-status-item">
+        <span class="status-dot {{ 'ok' if system_status is defined and system_status.ai_online else 'warning' }}"></span>
+        AI Agent {{ 'Online' if system_status is defined and system_status.ai_online else 'Offline' }}
+      </div>
+      <div class="sys-status-item">
+        <span class="status-dot ok"></span>
+        Facilities API
+      </div>
+    </div>
+    <div class="text-muted text-sm mt-4">
+      Last updated: <span id="sysTime">{{ 'just now' }}</span>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Category bar chart
+  {% if category_chart is defined and category_chart %}
+  var catLabels = {{ category_chart | map(attribute='name') | list | tojson }};
+  var catValues = {{ category_chart | map(attribute='count') | list | tojson }};
+  if (window.WWB) WWB.renderBarChart('catChart', catLabels, catValues, '#2d6a4f');
+  {% endif %}
+
+  // Weekly line chart
+  {% if weekly_chart is defined and weekly_chart %}
+  var wkLabels = {{ weekly_chart | map(attribute='day') | list | tojson }};
+  var wkValues = {{ weekly_chart | map(attribute='count') | list | tojson }};
+  if (window.WWB) WWB.renderLineChart('weeklyChart', wkLabels, wkValues, '#3b82f6');
+  {% endif %}
+});
+</script>
+{% endblock %}

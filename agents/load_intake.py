@@ -232,3 +232,127 @@ def validate_structured_input(waste_type: str, quantity_tons: float, origin: str
         "origin": origin,
         "method": "structured",
     }
+
+
+# ---------------------------------------------------------------------------
+# Waste Report AI Analysis  (new — does NOT modify the functions above)
+# ---------------------------------------------------------------------------
+
+_REPORT_CATEGORIES = [
+    "Organic/Wet", "Dry/Recyclable", "E-Waste",
+    "Construction", "Hazardous", "Mixed",
+]
+
+_SEVERITY_KEYWORDS = {
+    "critical": ["hazardous", "chemical", "toxic", "medical", "fire", "burning", "critical"],
+    "high":     ["large", "pile", "overflow", "overflowing", "dump", "illegal", "flood", "high"],
+    "low":      ["small", "minor", "few", "single", "one", "low"],
+}
+
+_PRIORITY_MAP = {
+    "critical": "urgent",
+    "high":     "high",
+    "medium":   "normal",
+    "low":      "low",
+}
+
+_ACTION_TEMPLATES = {
+    "Organic/Wet":    "Schedule wet-waste collection within 24 hours to prevent odour and health hazard.",
+    "Dry/Recyclable": "Arrange dry-waste pickup and sort for recycling at the nearest dry-waste facility.",
+    "E-Waste":        "Coordinate with certified e-waste recyclers for safe collection and disposal.",
+    "Construction":   "Deploy a C&D waste hauler to clear debris and transport to the C&D yard.",
+    "Hazardous":      "Dispatch a hazardous-waste response team immediately; do not handle without PPE.",
+    "Mixed":          "Collect and segregate at the nearest transfer station before onward processing.",
+}
+
+_ANALYSIS_PROMPT_TEMPLATE = (
+    "Analyse this waste report and return ONLY valid JSON.\n"
+    "Report: waste_category={waste_category}, description={description}, "
+    "quantity={quantity_estimate}, area={location_area}, severity={severity}.\n"
+    'Return JSON: {{"ai_category":"...","ai_severity":"low|medium|high|critical",'
+    '"ai_priority":"low|normal|high|urgent","ai_recommended_action":"...","ai_confidence":0.0}}\n'
+    "ai_category must be one of: Organic/Wet, Dry/Recyclable, E-Waste, Construction, Hazardous, Mixed\n"
+    "JSON:"
+)
+
+
+def _rule_based_analysis(report_data: dict) -> dict:
+    """
+    Rule-based fallback for waste report analysis.
+    Derives severity, priority, category and a recommended action without an LLM.
+    """
+    text = " ".join(filter(None, [
+        str(report_data.get("waste_category", "")),
+        str(report_data.get("description", "")),
+        str(report_data.get("quantity_estimate", "")),
+    ])).lower()
+
+    # Determine severity
+    severity = report_data.get("severity", "medium").lower()
+    if severity not in ("low", "medium", "high", "critical"):
+        severity = "medium"
+    for sev_level, keywords in _SEVERITY_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            severity = sev_level
+            break
+
+    # Map submitted category to a known one
+    submitted_cat = str(report_data.get("waste_category", "Mixed"))
+    ai_category = "Mixed"
+    for cat in _REPORT_CATEGORIES:
+        if cat.lower() in submitted_cat.lower() or submitted_cat.lower() in cat.lower():
+            ai_category = cat
+            break
+
+    priority = _PRIORITY_MAP.get(severity, "normal")
+    action = _ACTION_TEMPLATES.get(ai_category, _ACTION_TEMPLATES["Mixed"])
+
+    return {
+        "ai_category": ai_category,
+        "ai_severity": severity,
+        "ai_priority": priority,
+        "ai_recommended_action": action,
+        "ai_confidence": 0.70,
+    }
+
+
+def analyze_waste_report(report_data: dict) -> dict:
+    """
+    Analyse a waste report using IBM Granite (with rule-based fallback).
+
+    Parameters
+    ----------
+    report_data : dict with keys:
+        waste_category, description, quantity_estimate, location_area, severity
+
+    Returns
+    -------
+    dict with keys:
+        ai_category, ai_severity, ai_priority, ai_recommended_action, ai_confidence
+    """
+    # --- Granite path ---
+    try:
+        prompt = _ANALYSIS_PROMPT_TEMPLATE.format(
+            waste_category=report_data.get("waste_category", ""),
+            description=report_data.get("description", ""),
+            quantity_estimate=report_data.get("quantity_estimate", ""),
+            location_area=report_data.get("location_area", ""),
+            severity=report_data.get("severity", "medium"),
+        )
+        raw = _call_granite(prompt)
+
+        # Normalise and validate required keys
+        result = {
+            "ai_category":           str(raw.get("ai_category", "Mixed")),
+            "ai_severity":           str(raw.get("ai_severity", "medium")).lower(),
+            "ai_priority":           str(raw.get("ai_priority", "normal")).lower(),
+            "ai_recommended_action": str(raw.get("ai_recommended_action", "")),
+            "ai_confidence":         float(raw.get("ai_confidence", 0.85)),
+        }
+        if result["ai_category"] not in _REPORT_CATEGORIES:
+            result["ai_category"] = "Mixed"
+        return result
+
+    except Exception as exc:
+        logger.warning("Granite analysis unavailable (%s); using rule-based fallback.", exc)
+        return _rule_based_analysis(report_data)

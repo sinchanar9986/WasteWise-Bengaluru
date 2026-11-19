@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — Waste Wise Bengaluru</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;width:min(480px,92vw);">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category if category in ['success','error','warning','info','danger'] else 'info' }}" data-autohide="5000">
+      <span>{{ message }}</span>
+      <button class="alert-dismiss">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<div class="auth-wrapper" style="padding: 32px 16px;">
+  <div class="auth-card" style="max-width:520px;">
+
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🌿</div>
+      <span class="auth-logo-name">Waste Wise Bengaluru</span>
+      <div style="font-size:.75rem;color:#6b7280;margin-top:3px;">Create your citizen account</div>
+    </div>
+
+    <h2 class="auth-title">Create Account</h2>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" data-validate>
+      {% if csrf_token is defined %}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% endif %}
+
+      <div class="form-grid" style="gap:14px;">
+
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name <span class="required">*</span></label>
+          <input type="text" id="full_name" name="full_name" class="form-control"
+                 placeholder="Your full name"
+                 value="{{ request.form.get('full_name', '') }}" required>
+          <span class="form-error">Full name is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username <span class="required">*</span></label>
+          <input type="text" id="username" name="username" class="form-control"
+                 placeholder="Choose a username"
+                 value="{{ request.form.get('username', '') }}" required>
+          <span class="form-error">Username is required.</span>
+        </div>
+
+        <div class="form-group col-span-2">
+          <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" name="email" class="form-control"
+                 placeholder="you@example.com"
+                 value="{{ request.form.get('email', '') }}" required>
+          <span class="form-error">Valid email is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" class="form-control"
+                 placeholder="+91 98765 43210"
+                 value="{{ request.form.get('phone', '') }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="area">Area / Zone <span class="required">*</span></label>
+          <select id="area" name="area" class="form-control" required>
+            <option value="">Select your area</option>
+            {% set areas = ['Koramangala','Indiranagar','Whitefield','Yelahanka','Hebbal','Jayanagar',
+                            'Bannerghatta','HSR Layout','Rajajinagar','Shivajinagar',
+                            'Electronic City','Bellandur','Other'] %}
+            {% for a in areas %}
+            <option value="{{ a }}" {{ 'selected' if request.form.get('area') == a }}>{{ a }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-error">Please select your area.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password <span class="required">*</span></label>
+          <input type="password" id="password" name="password" class="form-control"
+                 placeholder="Create a password" required>
+          <span class="form-hint">Min. 8 characters, include uppercase, number &amp; symbol.</span>
+          <span class="form-error">Password is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm Password <span class="required">*</span></label>
+          <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                 placeholder="Re-enter password" required>
+          <span class="form-error">Passwords do not match.</span>
+        </div>
+
+      </div>
+
+      <div style="margin-top:20px;">
+        <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">
+          🌱 Create Account
+        </button>
+      </div>
+    </form>
+
+    <div class="auth-footer-link">
+      Already have an account?
+      <a href="{{ url_for('auth.login') }}">Sign in here</a>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

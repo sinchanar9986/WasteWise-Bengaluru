@@ -8,12 +8,14 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, redirect, url_for, render_template
 from flask_cors import CORS
+from flask_login import LoginManager, login_required, current_user
 from dotenv import load_dotenv
 
 from agents import load_intake, capacity_allocator, scenario_analyst
-import db
+import db as db_module
+from auth.user_model import User
 
 load_dotenv()
 
@@ -21,23 +23,84 @@ app = Flask(__name__)
 CORS(app)
 
 # ---------------------------------------------------------------------------
-# Error handler
+# Configuration
 # ---------------------------------------------------------------------------
 
-@app.errorhandler(Exception)
-def handle_error(e):
-    return jsonify({"success": False, "error": str(e)}), 500
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'wwb-dev-secret-change-in-production')
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB max upload
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# Flask-Login
+# ---------------------------------------------------------------------------
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'warning'
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    user_dict = db_module.get_user_by_id(int(user_id))
+    return User(user_dict) if user_dict else None
 
 
 # ---------------------------------------------------------------------------
-# Static frontend
+# Blueprints
 # ---------------------------------------------------------------------------
 
-@app.route("/")
-def serve_index():
-    """Serve the single-page frontend dashboard."""
+from auth.routes import auth_bp
+from routes.citizen import citizen_bp
+from routes.admin import admin_bp
+
+app.register_blueprint(auth_bp)
+app.register_blueprint(citizen_bp)
+app.register_blueprint(admin_bp)
+
+# ---------------------------------------------------------------------------
+# Error handlers
+# ---------------------------------------------------------------------------
+
+@app.errorhandler(404)
+def not_found(e):
+    if request.path.startswith('/api/'):
+        return jsonify({"success": False, "error": "Not found"}), 404
+    return render_template('errors/404.html'), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    if request.path.startswith('/api/'):
+        return jsonify({"success": False, "error": str(e)}), 500
+    return render_template('errors/500.html'), 500
+
+
+# ---------------------------------------------------------------------------
+# Top-level navigation routes
+# ---------------------------------------------------------------------------
+
+@app.route('/')
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('auth.login'))
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    if current_user.is_admin():
+        return redirect(url_for('admin.dashboard'))
+    return redirect(url_for('citizen.dashboard'))
+
+
+@app.route('/legacy')
+def legacy():
     workspace = os.path.dirname(os.path.abspath(__file__))
-    return send_from_directory(workspace, "index.html")
+    return send_from_directory(workspace, 'index.html')
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +111,7 @@ def serve_index():
 def get_facilities():
     """Return current state of all facilities."""
     try:
-        facilities = db.get_all_facilities()
+        facilities = db_module.get_all_facilities()
         return jsonify({"success": True, "facilities": facilities})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -58,10 +121,21 @@ def get_facilities():
 def get_stats():
     """Return aggregated dashboard statistics."""
     try:
-        stats = db.get_dashboard_stats()
+        stats = db_module.get_dashboard_stats()
         return jsonify({"success": True, **stats})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/notifications/unread-count", methods=["GET"])
+@login_required
+def notifications_unread_count():
+    """Return unread notification count for the logged-in user."""
+    try:
+        count = db_module.get_unread_count(current_user.id)
+        return jsonify({"success": True, "count": count})
+    except Exception as e:
+        return jsonify({"success": False, "count": 0, "error": str(e)}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +174,7 @@ def allocate():
         orig = intake["origin"]
 
         # Insert waste request and allocate
-        request_id = db.insert_waste_request(raw_input, wt, qty, orig)
+        request_id = db_module.insert_waste_request(raw_input, wt, qty, orig)
         result = capacity_allocator.allocate(wt, qty, orig, request_id)
 
         # Attach intake context so explain_allocation can derive waste_type / origin

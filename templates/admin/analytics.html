@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Admin — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">📈 Analytics</div>
+    <div class="page-subtitle">Reports and performance metrics</div>
+  </div>
+  <!-- Date Range Filter -->
+  <form method="GET" action="{{ url_for('admin.analytics') }}" class="flex gap-2 items-center flex-wrap">
+    <div class="form-group" style="margin:0;">
+      <input type="date" name="date_from" class="form-control"
+             value="{{ request.args.get('date_from', '') }}" style="font-size:.82rem;padding:6px 10px;">
+    </div>
+    <span style="color:var(--text-muted);font-size:.82rem;">to</span>
+    <div class="form-group" style="margin:0;">
+      <input type="date" name="date_to" class="form-control"
+             value="{{ request.args.get('date_to', '') }}" style="font-size:.82rem;padding:6px 10px;">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    <a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary btn-sm">Reset</a>
+  </form>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid section-gap">
+  <div class="stat-card">
+    <div class="stat-icon blue">📋</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ summary.total if summary is defined else '—' }}</div>
+      <div class="stat-label">Total in Period</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✅</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ summary.resolved if summary is defined else '—' }}</div>
+      <div class="stat-label">Resolved</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">⏳</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ summary.pending if summary is defined else '—' }}</div>
+      <div class="stat-label">Still Pending</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon cyan">⚡</div>
+    <div class="stat-body">
+      <div class="stat-value">{{ summary.avg_resolution_days if summary is defined else '—' }}</div>
+      <div class="stat-label">Avg Resolution (days)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="charts-grid section-gap">
+
+  <!-- Reports by Category (bar) -->
+  <div class="chart-container">
+    <div class="chart-title">📦 Reports by Category</div>
+    <div id="catBarChart" style="width:100%;height:180px;"></div>
+  </div>
+
+  <!-- Reports by Status (SVG donut-ish) -->
+  <div class="chart-container">
+    <div class="chart-title">🔄 Reports by Status</div>
+    {% if status_data is defined and status_data %}
+    <svg id="statusDonut" width="100%" height="180" viewBox="0 0 320 180">
+      {% set colors = ['#3b82f6','#06b6d4','#f59e0b','#f97316','#10b981','#059669','#ef4444'] %}
+      {% set total_sd = status_data | sum(attribute='count') %}
+      {% set bar_w = 36 %}
+      {% set n = status_data | length %}
+      {% set spacing = (280 // n) if n > 0 else 46 %}
+      {% set max_v = status_data | map(attribute='count') | max if status_data else 1 %}
+      {% for s in status_data %}
+      {% set bh = ((s.count / max_v) * 130) | int if max_v > 0 else 0 %}
+      {% set x = 20 + loop.index0 * spacing + (spacing - bar_w)//2 %}
+      {% set y = 150 - bh %}
+      <rect x="{{ x }}" y="{{ y }}" width="{{ bar_w }}" height="{{ bh }}"
+            fill="{{ colors[loop.index0 % (colors | length)] }}" rx="4" opacity="0.9"/>
+      <text x="{{ x + bar_w//2 }}" y="168" text-anchor="middle" font-size="8" fill="#6b7280">
+        {{ s.status[:7] if s.status else '' }}
+      </text>
+      <text x="{{ x + bar_w//2 }}" y="{{ y - 3 }}" text-anchor="middle" font-size="9" font-weight="600" fill="#374151">
+        {{ s.count }}
+      </text>
+      {% endfor %}
+    </svg>
+    {% else %}
+    <div id="statusBarChart" style="width:100%;height:180px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.82rem;">
+      No data available
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Charts Row 2 -->
+<div class="charts-grid section-gap">
+
+  <!-- Reports over last 7 days (line) -->
+  <div class="chart-container">
+    <div class="chart-title">📅 Reports — Last 7 Days</div>
+    <div id="weeklyLineChart" style="width:100%;height:160px;"></div>
+  </div>
+
+  <!-- Top 5 areas (horizontal bar using SVG) -->
+  <div class="chart-container">
+    <div class="chart-title">📍 Top 5 Areas by Report Count</div>
+    {% if top_areas is defined and top_areas %}
+    <svg width="100%" height="160" viewBox="0 0 320 160">
+      {% set max_a = top_areas | map(attribute='count') | max if top_areas else 1 %}
+      {% for area in top_areas %}
+      {% set bw = ((area.count / max_a) * 200) | int if max_a > 0 else 0 %}
+      {% set y = 10 + loop.index0 * 30 %}
+      <text x="0" y="{{ y + 11 }}" font-size="9" fill="#6b7280">{{ area.area[:14] if area.area else '—' }}</text>
+      <rect x="100" y="{{ y }}" width="{{ bw }}" height="18" fill="#2d6a4f" rx="3" opacity="0.85"/>
+      <text x="{{ 105 + bw }}" y="{{ y + 12 }}" font-size="9" fill="#374151">{{ area.count }}</text>
+      {% endfor %}
+    </svg>
+    {% else %}
+    <div style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--text-muted);font-size:.82rem;">
+      No data available
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Summary Stats Table -->
+<div class="card section-gap">
+  <div class="card-title">📊 Detailed Summary Table</div>
+  {% if category_data is defined and category_data %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Total</th>
+          <th>Resolved</th>
+          <th>Pending</th>
+          <th>Avg Priority</th>
+          <th>Resolution %</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in category_data %}
+        <tr>
+          <td>{{ row.name or '—' }}</td>
+          <td class="font-bold">{{ row.total or 0 }}</td>
+          <td>{{ row.resolved or 0 }}</td>
+          <td>{{ (row.total or 0) - (row.resolved or 0) }}</td>
+          <td>
+            <span class="badge badge-{{ row.avg_priority | lower if row.avg_priority else 'normal' }}">
+              {{ row.avg_priority | title if row.avg_priority else 'Normal' }}
+            </span>
+          </td>
+          <td>
+            {% set pct = ((row.resolved / row.total) * 100) | round(1) if row.total and row.total > 0 else 0 %}
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
+                <div style="width:{{ pct }}%;height:100%;background:var(--success);border-radius:3px;"></div>
+              </div>
+              <span style="font-size:.78rem;color:var(--text-muted);">{{ pct }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center text-muted" style="padding:30px;">No analytics data available for the selected period.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  {% if category_data is defined and category_data %}
+  var catLabels = {{ category_data | map(attribute='name') | list | tojson }};
+  var catValues = {{ category_data | map(attribute='total') | list | tojson }};
+  if (window.WWB) WWB.renderBarChart('catBarChart', catLabels, catValues, '#2d6a4f');
+  {% endif %}
+
+  {% if weekly_data is defined and weekly_data %}
+  var wkLabels = {{ weekly_data | map(attribute='day') | list | tojson }};
+  var wkValues = {{ weekly_data | map(attribute='count') | list | tojson }};
+  if (window.WWB) WWB.renderLineChart('weeklyLineChart', wkLabels, wkValues, '#3b82f6');
+  {% endif %}
+});
+</script>
+{% endblock %}

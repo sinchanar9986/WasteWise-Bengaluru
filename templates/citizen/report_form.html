@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Report Waste — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">📸 Report Waste</div>
+    <div class="page-subtitle">Submit a new waste collection request</div>
+  </div>
+  <a href="{{ url_for('citizen.dashboard') }}" class="btn btn-secondary">← Back</a>
+</div>
+
+{% if submitted is defined and submitted %}
+<!-- Success state -->
+<div class="card" style="max-width:560px;text-align:center;padding:40px;">
+  <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+  <h2 style="color:var(--primary-dark);margin-bottom:8px;">Report Submitted!</h2>
+  <p style="color:var(--text-muted);margin-bottom:16px;">
+    Your report has been received and will be reviewed by our AI agent.
+  </p>
+  <div style="background:#f0fdf4;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:20px;">
+    <div style="font-size:.8rem;color:var(--text-muted);">Report ID</div>
+    <div style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);">#{{ new_report_id }}</div>
+  </div>
+  <div class="flex gap-3" style="justify-content:center;">
+    <a href="{{ url_for('citizen.report_detail', report_id=new_report_id) }}" class="btn btn-primary">Track Report</a>
+    <a href="{{ url_for('citizen.report_waste') }}" class="btn btn-secondary">Submit Another</a>
+  </div>
+</div>
+
+{% else %}
+<!-- Report form -->
+<div class="form-card">
+  <form method="POST"
+        action="{{ url_for('citizen.report_waste') }}"
+        enctype="multipart/form-data"
+        data-validate>
+    {% if csrf_token is defined %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+
+    <div class="form-grid">
+
+      <!-- Waste Category -->
+      <div class="form-group">
+        <label class="form-label" for="category_id">Waste Category <span class="required">*</span></label>
+        <select id="category_id" name="category_id" class="form-control" required>
+          <option value="">Select category</option>
+          {% if waste_categories is defined %}
+            {% for cat in waste_categories %}
+            <option value="{{ cat.id }}" {{ 'selected' if request.form.get('category_id')|int == cat.id }}>
+              {{ cat.name }}
+            </option>
+            {% endfor %}
+          {% else %}
+            <option value="1">Household Garbage</option>
+            <option value="2">Construction Debris</option>
+            <option value="3">Industrial Waste</option>
+            <option value="4">Organic / Food Waste</option>
+            <option value="5">E-Waste</option>
+            <option value="6">Hazardous Waste</option>
+            <option value="7">Plastic / Packaging</option>
+            <option value="8">Medical Waste</option>
+          {% endif %}
+        </select>
+        <span class="form-error">Please select a category.</span>
+      </div>
+
+      <!-- Location Area -->
+      <div class="form-group">
+        <label class="form-label" for="location_area">Location Area <span class="required">*</span></label>
+        <select id="location_area" name="location_area" class="form-control" required>
+          <option value="">Select area</option>
+          {% set areas = ['Koramangala','Indiranagar','Whitefield','Yelahanka','Hebbal','Jayanagar',
+                          'Bannerghatta','HSR Layout','Rajajinagar','Shivajinagar',
+                          'Electronic City','Bellandur','Other'] %}
+          {% for a in areas %}
+          <option value="{{ a }}" {{ 'selected' if request.form.get('location_area') == a }}>{{ a }}</option>
+          {% endfor %}
+        </select>
+        <span class="form-error">Please select an area.</span>
+      </div>
+
+      <!-- Quantity -->
+      <div class="form-group">
+        <label class="form-label" for="quantity_estimate">Quantity Estimate <span class="required">*</span></label>
+        <select id="quantity_estimate" name="quantity_estimate" class="form-control" required>
+          <option value="">Select quantity</option>
+          <option value="Small" {{ 'selected' if request.form.get('quantity_estimate') == 'Small' }}>Small — less than 1 bag</option>
+          <option value="Medium" {{ 'selected' if request.form.get('quantity_estimate') == 'Medium' }}>Medium — 1 to 5 bags</option>
+          <option value="Large" {{ 'selected' if request.form.get('quantity_estimate') == 'Large' }}>Large — 5 to 20 bags</option>
+          <option value="Very Large" {{ 'selected' if request.form.get('quantity_estimate') == 'Very Large' }}>Very Large — more than 20 bags</option>
+        </select>
+        <span class="form-error">Please estimate the quantity.</span>
+      </div>
+
+      <!-- Severity -->
+      <div class="form-group">
+        <label class="form-label" for="severity">Severity <span class="required">*</span></label>
+        <select id="severity" name="severity" class="form-control" required>
+          <option value="">Select severity</option>
+          <option value="low"      {{ 'selected' if request.form.get('severity') == 'low' }}>🟢 Low — Minor issue</option>
+          <option value="medium"   {{ 'selected' if request.form.get('severity') == 'medium' }}>🟡 Medium — Needs attention</option>
+          <option value="high"     {{ 'selected' if request.form.get('severity') == 'high' }}>🟠 High — Urgent</option>
+          <option value="critical" {{ 'selected' if request.form.get('severity') == 'critical' }}>🔴 Critical — Health hazard</option>
+        </select>
+        <span class="form-error">Please select severity.</span>
+      </div>
+
+      <!-- Priority -->
+      <div class="form-group">
+        <label class="form-label" for="priority">Priority</label>
+        <select id="priority" name="priority" class="form-control">
+          <option value="normal" {{ 'selected' if request.form.get('priority','normal') == 'normal' }}>Normal</option>
+          <option value="low"    {{ 'selected' if request.form.get('priority') == 'low' }}>Low</option>
+          <option value="high"   {{ 'selected' if request.form.get('priority') == 'high' }}>High</option>
+          <option value="urgent" {{ 'selected' if request.form.get('priority') == 'urgent' }}>Urgent</option>
+        </select>
+      </div>
+
+      <!-- Location Details -->
+      <div class="form-group">
+        <label class="form-label" for="location_details">Location Details</label>
+        <input type="text" id="location_details" name="location_details" class="form-control"
+               placeholder="e.g. Near Bus Stop 24, Main Road"
+               value="{{ request.form.get('location_details', '') }}">
+        <span class="form-hint">Landmark, street name, or cross-road for quick identification.</span>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group col-span-2">
+        <label class="form-label" for="description">Description <span class="required">*</span></label>
+        <textarea id="description" name="description" class="form-control" rows="4"
+                  placeholder="Describe the waste problem in detail..." required>{{ request.form.get('description', '') }}</textarea>
+        <span class="form-error">Description is required.</span>
+      </div>
+
+      <!-- Photo Upload -->
+      <div class="form-group col-span-2">
+        <label class="form-label" for="photo">Photo (Optional)</label>
+        <div class="file-upload-area" onclick="document.getElementById('photo').click();">
+          <input type="file" id="photo" name="photo" accept="image/*" style="display:none;">
+          <div>📷 <span class="upload-text">Click or drag a photo here (optional)</span></div>
+          <div class="form-hint" style="margin-top:4px;">JPG, PNG, WEBP — max 5 MB</div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group col-span-2">
+        <label class="form-label" for="notes">Additional Notes</label>
+        <textarea id="notes" name="notes" class="form-control" rows="2"
+                  placeholder="Any other information...">{{ request.form.get('notes', '') }}</textarea>
+      </div>
+
+    </div><!-- /.form-grid -->
+
+    <div class="flex gap-3 mt-6">
+      <button type="submit" class="btn btn-primary btn-lg">
+        📤 Submit Report
+      </button>
+      <a href="{{ url_for('citizen.dashboard') }}" class="btn btn-secondary btn-lg">Cancel</a>
+    </div>
+
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Make file upload area trigger click on input
+document.querySelectorAll('.file-upload-area').forEach(function(area) {
+  var inp = area.querySelector('input[type="file"]');
+  if (inp) {
+    inp.addEventListener('change', function() {
+      var txt = area.querySelector('.upload-text');
+      if (txt && inp.files.length) txt.textContent = inp.files[0].name;
+    });
+    area.style.cursor = 'pointer';
+  }
+});
+</script>
+{% endblock %}

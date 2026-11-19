@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}My Reports — Waste Wise Bengaluru{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">📄 My Reports</div>
+    <div class="page-subtitle">All waste reports submitted by you</div>
+  </div>
+  <a href="{{ url_for('citizen.report_waste') }}" class="btn btn-primary">📸 New Report</a>
+</div>
+
+<!-- Filter Bar -->
+<form method="GET" action="{{ url_for('citizen.my_reports') }}">
+  <div class="filter-bar section-gap">
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-control" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for s in ['Reported','Verified','Assigned','Collection Scheduled','Collected','Resolved'] %}
+        <option value="{{ s }}" {{ 'selected' if request.args.get('status') == s }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select name="category" class="form-control" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% if waste_categories is defined %}
+          {% for cat in waste_categories %}
+          <option value="{{ cat.id }}" {{ 'selected' if request.args.get('category')|int == cat.id }}>{{ cat.name }}</option>
+          {% endfor %}
+        {% endif %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Area</label>
+      <select name="area" class="form-control" onchange="this.form.submit()">
+        <option value="">All Areas</option>
+        {% set areas = ['Koramangala','Indiranagar','Whitefield','Yelahanka','Hebbal','Jayanagar',
+                        'Bannerghatta','HSR Layout','Rajajinagar','Shivajinagar',
+                        'Electronic City','Bellandur','Other'] %}
+        {% for a in areas %}
+        <option value="{{ a }}" {{ 'selected' if request.args.get('area') == a }}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="justify-content:flex-end;align-self:flex-end;">
+      <a href="{{ url_for('citizen.my_reports') }}" class="btn btn-secondary btn-sm">Clear Filters</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  {% if reports is defined and reports %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Report ID</th>
+          <th>Category</th>
+          <th>Area</th>
+          <th>Severity</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Submitted</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td class="td-muted font-bold">#{{ r.id }}</td>
+          <td>{{ r.waste_category or '—' }}</td>
+          <td>{{ r.location_area or '—' }}</td>
+          <td>
+            <span class="badge badge-severity-{{ r.severity | lower if r.severity else 'low' }}">
+              {{ r.severity | title if r.severity else '—' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{{ r.priority | lower if r.priority else 'normal' }}">
+              {{ r.priority | title if r.priority else 'Normal' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{{ r.status | lower | replace(' ', '_') if r.status else 'reported' }}">
+              {{ r.status | replace('_', ' ') | title if r.status else 'Reported' }}
+            </span>
+          </td>
+          <td class="td-muted">
+            {{ (r.created_at or '')[:10] }}
+          </td>
+          <td>
+            <a href="{{ url_for('citizen.report_detail', report_id=r.report_id) }}" class="btn btn-secondary btn-sm">
+              View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination is defined %}
+  <div class="flex gap-2 items-center mt-4" style="justify-content:flex-end;font-size:.82rem;color:var(--text-muted);">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('citizen.my_reports', page=pagination.prev_num, **request.args) }}" class="btn btn-secondary btn-sm">← Prev</a>
+    {% endif %}
+    <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+    {% if pagination.has_next %}
+    <a href="{{ url_for('citizen.my_reports', page=pagination.next_num, **request.args) }}" class="btn btn-secondary btn-sm">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="text-center" style="padding:50px 0;color:var(--text-muted);">
+    <div style="font-size:3rem;margin-bottom:12px;">🗑️</div>
+    <p style="font-size:1rem;margin-bottom:16px;">
+      {% if request.args.get('status') or request.args.get('area') or request.args.get('category') %}
+        No reports found matching the selected filters.
+      {% else %}
+        You haven't submitted any waste reports yet.
+      {% endif %}
+    </p>
+    <a href="{{ url_for('citizen.report_waste') }}" class="btn btn-primary">📸 Report Waste Now</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
