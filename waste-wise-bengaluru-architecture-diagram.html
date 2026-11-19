@@ -1,0 +1,433 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Waste Wise Bengaluru — Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: #0f1a14;
+    color: #e8f5e9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #81c784;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: #a5d6a7;
+    margin-bottom: 28px;
+    text-align: center;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .diagram {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── LAYER STYLES ── */
+  .layer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .layer-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #66bb6a;
+    margin-bottom: 6px;
+  }
+
+  /* ── BOXES ── */
+  .box {
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: center;
+    position: relative;
+  }
+  .box-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .box-sub {
+    font-size: 10px;
+    opacity: 0.8;
+  }
+  .box-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-top: 5px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Frontend */
+  .frontend {
+    background: #1b3a2a;
+    border: 1.5px solid #2e7d32;
+    width: 420px;
+  }
+  .frontend .box-title { color: #a5d6a7; }
+  .frontend .box-tag { background: #2e7d32; color: #c8e6c9; }
+
+  /* Flask */
+  .flask-box {
+    background: #1a2f1e;
+    border: 1.5px solid #388e3c;
+    width: 520px;
+    padding: 14px 24px;
+  }
+  .flask-box .box-title { color: #81c784; }
+
+  /* Agents row */
+  .agents-row {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    max-width: 860px;
+    justify-content: center;
+  }
+
+  .agent-box {
+    flex: 1;
+    max-width: 260px;
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .agent-intake  { background: #0d2b1e; border: 1.5px solid #00897b; }
+  .agent-intake .box-title  { color: #80cbc4; }
+  .agent-intake .box-tag    { background: #00695c; color: #b2dfdb; }
+
+  .agent-alloc   { background: #0d1f2e; border: 1.5px solid #1565c0; }
+  .agent-alloc .box-title   { color: #90caf9; }
+  .agent-alloc .box-tag     { background: #0d47a1; color: #bbdefb; }
+
+  .agent-scenario{ background: #1f1030; border: 1.5px solid #6a1b9a; }
+  .agent-scenario .box-title{ color: #ce93d8; }
+  .agent-scenario .box-tag  { background: #4a148c; color: #e1bee7; }
+
+  /* Granite */
+  .granite-box {
+    background: #1a1800;
+    border: 1.5px solid #f9a825;
+    width: 320px;
+    padding: 12px 18px;
+  }
+  .granite-box .box-title { color: #fff59d; }
+  .granite-box .box-tag { background: #f57f17; color: #fff8e1; }
+
+  /* DB */
+  .db-box {
+    background: #1e1a0d;
+    border: 1.5px solid #f57f17;
+    width: 320px;
+    padding: 12px 18px;
+  }
+  .db-box .box-title { color: #ffcc80; }
+  .db-box .box-tag { background: #e65100; color: #ffe0b2; }
+
+  /* ── ARROWS ── */
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px 0;
+    gap: 0;
+  }
+  .arrow-line {
+    width: 2px;
+    height: 20px;
+    background: #388e3c;
+  }
+  .arrow-label {
+    font-size: 9px;
+    color: #81c784;
+    letter-spacing: 0.5px;
+    margin: 1px 0;
+    background: #0f1a14;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #388e3c;
+  }
+
+  .arrow-dual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .arrow-dual-label {
+    font-size: 9px;
+    color: #a5d6a7;
+    background: #0f1a14;
+    padding: 1px 8px;
+    border-radius: 4px;
+    border: 1px solid #2e7d32;
+  }
+
+  /* ── BOTTOM ROW ── */
+  .bottom-row {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 860px;
+  }
+
+  .bottom-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── ROUTES PANEL ── */
+  .routes-panel {
+    background: #111f16;
+    border: 1px solid #2e7d32;
+    border-radius: 10px;
+    padding: 12px 18px;
+    width: 520px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2px;
+  }
+  .route-pill {
+    background: #1b3a2a;
+    border: 1px solid #388e3c;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 9.5px;
+    color: #a5d6a7;
+    font-family: "Courier New", monospace;
+    font-weight: 600;
+  }
+  .routes-title {
+    font-size: 9px;
+    color: #66bb6a;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 7px;
+    text-align: center;
+    width: 100%;
+  }
+
+  /* ── TECH STACK BAR ── */
+  .tech-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 22px;
+    max-width: 860px;
+  }
+  .tech-pill {
+    background: #1b2f1e;
+    border: 1px solid #388e3c;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 10px;
+    color: #c8e6c9;
+    font-weight: 600;
+  }
+  .tech-pill.ibm { border-color: #1565c0; color: #90caf9; background: #0d1f2e; }
+  .tech-pill.db  { border-color: #f57f17; color: #ffcc80; background: #1e1a0d; }
+
+  /* ── HORIZONTAL SPLIT ARROW ── */
+  .h-arrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 3px 0;
+  }
+  .h-line { width: 60px; height: 2px; background: #388e3c; }
+  .h-arrow-head {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid #388e3c;
+  }
+  .h-label { font-size: 9px; color: #81c784; }
+
+  .footnote {
+    margin-top: 20px;
+    font-size: 9px;
+    color: #4caf50;
+    letter-spacing: 0.5px;
+    text-align: center;
+    opacity: 0.7;
+  }
+
+  footer {
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 1px solid #2e7d32;
+    font-size: 11px;
+    color: #4caf50;
+    text-align: center;
+    width: 100%;
+    max-width: 900px;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<h1>🌿 Waste Wise Bengaluru</h1>
+<div class="subtitle">AI-Powered Capacity-Constrained Waste Allocation System — Architecture</div>
+
+<div class="diagram">
+
+  
+  <div class="layer">
+    <div class="layer-label">Presentation Layer</div>
+    <div class="box frontend">
+      <div class="box-title">🖥 Dashboard (index.html)</div>
+      <div class="box-sub">Request Form · Decision Trace · Facility Table · Re-planning Panel · Comparison View</div>
+      <span class="box-tag">HTML5 · CSS3 · Vanilla JS</span>
+    </div>
+  </div>
+
+  
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-dual-label">REST / JSON  ↕  HTTP 5000</div>
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  
+  <div class="layer">
+    <div class="layer-label">API Gateway</div>
+    <div class="routes-panel">
+      <div class="routes-title">Flask REST API — app.py</div>
+      <span class="route-pill">POST /api/allocate</span>
+      <span class="route-pill">GET /api/facilities</span>
+      <span class="route-pill">POST /api/close-facility</span>
+      <span class="route-pill">POST /api/replan</span>
+      <span class="route-pill">POST /api/compare</span>
+      <span class="route-pill">GET /api/stats</span>
+    </div>
+  </div>
+
+  
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  
+  <div class="layer">
+    <div class="layer-label">Agentic AI Layer</div>
+    <div class="agents-row">
+
+      <div class="agent-box agent-intake">
+        <div class="box-title">📥 Load Intake Agent</div>
+        <div class="box-sub">Parses natural-language &amp; structured waste requests · Extracts waste type, quantity, origin · Guardrails validation</div>
+        <span class="box-tag">load_intake.py</span>
+      </div>
+
+      <div class="agent-box agent-alloc">
+        <div class="box-title">⚖ Capacity Allocation Agent</div>
+        <div class="box-sub">Compatibility check · Capacity-aware selection · First-compatible baseline · Decision trace · Partial allocation</div>
+        <span class="box-tag">capacity_allocator.py</span>
+      </div>
+
+      <div class="agent-box agent-scenario">
+        <div class="box-title">🔍 Scenario Analysis Agent</div>
+        <div class="box-sub">Plain-English explanations · Facility closure detection · Re-planning · Before / After comparison</div>
+        <span class="box-tag">scenario_analyst.py</span>
+      </div>
+
+    </div>
+  </div>
+
+  
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  
+  <div class="layer">
+    <div class="layer-label">Intelligence &amp; Persistence Layer</div>
+    <div class="bottom-row">
+
+      
+      <div class="bottom-col">
+        <div class="box granite-box">
+          <div class="box-title">🧠 IBM Granite LLM</div>
+          <div class="box-sub">NL request parsing · Allocation explanation text · watsonx.ai REST API · Regex fallback when offline</div>
+          <span class="box-tag">ibm/granite-3-8b-instruct</span>
+        </div>
+      </div>
+
+      
+      <div class="bottom-col">
+        <div class="box db-box">
+          <div class="box-title">🗄 SQLite Database</div>
+          <div class="box-sub">facilities · waste_requests · allocations · Capacity state · Facility status · Allocation history</div>
+          <span class="box-tag">db.py · wastewise.db</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  
+  <div class="tech-bar">
+    <span class="tech-pill ibm">IBM Bob</span>
+    <span class="tech-pill ibm">IBM Granite LLM</span>
+    <span class="tech-pill ibm">IBM watsonx.ai</span>
+    <span class="tech-pill">Python 3.11</span>
+    <span class="tech-pill">Flask</span>
+    <span class="tech-pill">HTML5 · CSS3 · JS</span>
+    <span class="tech-pill db">SQLite (MVP) / MySQL</span>
+  </div>
+
+  <div class="footnote">⚠ All facility data is SIMULATED — not verified operational BBMP data  |  Problem Statement 16 — Waste Wise Bengaluru</div>
+
+</div>
+
+<footer>Made with IBM Bob</footer>
+
+</body>
+</html>

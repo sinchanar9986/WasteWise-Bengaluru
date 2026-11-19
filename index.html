@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waste Wise Bengaluru — AI Waste Allocation</title>
+<style>
+  /* ---- Reset & Base ---- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #f4f6f4;
+    color: #1f2328;
+  }
+  h2 { font-size: 15px; font-weight: 600; color: #2d6a4f; margin-bottom: 10px; }
+  h3 { font-size: 13px; font-weight: 600; color: #2d6a4f; margin-bottom: 8px; }
+
+  /* ---- Header ---- */
+  .site-header {
+    background: #2d6a4f;
+    color: #fff;
+    padding: 16px 24px 12px;
+  }
+  .site-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .site-header .subtitle {
+    font-size: 13px;
+    color: #b7e4c7;
+    margin-top: 2px;
+  }
+
+  /* ---- Disclaimer Banner ---- */
+  .disclaimer {
+    background: #fef3cd;
+    border-bottom: 2px solid #e9c46a;
+    color: #664d03;
+    padding: 8px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.2px;
+  }
+
+  /* ---- Stats Row ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 16px 24px 0;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #d8e8df;
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat-card .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #2d6a4f;
+    line-height: 1.2;
+  }
+  .stat-card .stat-label {
+    font-size: 11px;
+    color: #57606a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* ---- Main Grid ---- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    gap: 16px;
+    padding: 16px 24px 24px;
+    min-height: 0;
+  }
+
+  /* ---- Panels / Cards ---- */
+  .panel {
+    background: #fff;
+    border: 1px solid #d8e8df;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .panel:last-child { margin-bottom: 0; }
+
+  /* ---- Form ---- */
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #57606a;
+    margin-bottom: 3px;
+    margin-top: 10px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #c8d8d0;
+    border-radius: 5px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #f9fdfb;
+    color: #1f2328;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus,
+  select:focus, textarea:focus {
+    outline: none;
+    border-color: #2d6a4f;
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .form-note {
+    font-size: 11px;
+    color: #57606a;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: #2d6a4f; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #235c43; }
+  .btn-danger { background: #c0392b; color: #fff; font-size: 11px; padding: 4px 10px; }
+  .btn-danger:hover:not(:disabled) { background: #a93226; }
+  .btn-sm { font-size: 11px; padding: 4px 10px; }
+  .btn-block { width: 100%; justify-content: center; margin-top: 12px; }
+
+  /* ---- Alert ---- */
+  .alert {
+    border-radius: 5px;
+    padding: 10px 12px;
+    font-size: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .alert-error { background: #fde8e8; border: 1px solid #f5a0a0; color: #7b1a1a; }
+  .alert-warning { background: #fef3cd; border: 1px solid #e9c46a; color: #664d03; }
+  .alert-success { background: #e8f5ed; border: 1px solid #74c69d; color: #1a4731; }
+  .alert-dismiss {
+    margin-left: auto; cursor: pointer; font-size: 14px; line-height: 1;
+    background: none; border: none; color: inherit; padding: 0;
+  }
+
+  /* ---- Decision Trace ---- */
+  .trace-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f4f2;
+    font-size: 12px;
+  }
+  .trace-step:last-child { border-bottom: none; }
+  .trace-icon { font-size: 14px; flex-shrink: 0; }
+  .trace-step-name { font-weight: 600; color: #2d6a4f; }
+  .trace-detail { color: #57606a; }
+
+  .trace-result-box {
+    background: #f0faf4;
+    border: 1px solid #74c69d;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .trace-result-box .result-line { margin-bottom: 2px; }
+  .trace-result-box .result-label { color: #57606a; }
+  .trace-result-box .result-val { font-weight: 700; color: #2d6a4f; }
+  .explanation-text {
+    font-size: 12px;
+    color: #3a3f44;
+    background: #f7f9f8;
+    border-left: 3px solid #2d6a4f;
+    padding: 8px 10px;
+    margin-top: 10px;
+    border-radius: 0 5px 5px 0;
+    line-height: 1.6;
+  }
+
+  /* ---- Comparison Panel ---- */
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .compare-box {
+    background: #f7f9f8;
+    border: 1px solid #d8e8df;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+  }
+  .compare-box h4 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #2d6a4f;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .compare-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .compare-row .ck { color: #57606a; }
+  .compare-row .cv { font-weight: 600; color: #1f2328; }
+  .compare-same-banner {
+    text-align: center;
+    color: #57606a;
+    font-size: 12px;
+    padding: 6px;
+    font-style: italic;
+  }
+
+  /* ---- Facility Table ---- */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    background: #2d6a4f;
+    color: #fff;
+    text-align: left;
+    padding: 7px 10px;
+    font-weight: 600;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eef2f0;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  tr:hover td { background: #f4faf7; }
+
+  /* ---- Utilization Bar ---- */
+  .util-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 90px;
+  }
+  .util-bar-bg {
+    flex: 1;
+    background: #e5e7eb;
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .util-bar-fill {
+    height: 8px;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .util-bar-pct { font-size: 11px; font-weight: 600; color: #57606a; min-width: 32px; }
+
+  /* ---- Status Badges ---- */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .badge-open    { background: #d1fae5; color: #065f46; }
+  .badge-closed  { background: #fee2e2; color: #991b1b; }
+  .badge-alloc   { background: #d1fae5; color: #065f46; }
+  .badge-unalloc { background: #fee2e2; color: #991b1b; }
+  .badge-realloc { background: #dbeafe; color: #1e40af; }
+
+  /* ---- Re-planning Stages ---- */
+  .stages-flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin-bottom: 14px;
+    overflow-x: auto;
+  }
+  .stage-card {
+    flex: 1;
+    min-width: 110px;
+    background: #f0faf4;
+    border: 1px solid #74c69d;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 11px;
+    position: relative;
+  }
+  .stage-card .stage-title {
+    font-weight: 700;
+    color: #2d6a4f;
+    margin-bottom: 3px;
+    font-size: 11px;
+  }
+  .stage-card .stage-detail { color: #57606a; font-size: 10px; }
+  .stage-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    color: #74c69d;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ---- Allocation History Table ---- */
+  .history-table td, .history-table th { padding: 5px 8px; }
+
+  /* ---- Excess Warning ---- */
+  .excess-warning {
+    background: #fef3cd;
+    border: 2px solid #e9c46a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #664d03;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- Monospace for JSON / detail ---- */
+  .mono { font-family: "Consolas", "Courier New", monospace; }
+
+  /* ---- Hidden utility ---- */
+  .hidden { display: none !important; }
+
+  /* ---- Spinner on button ---- */
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- Responsive tweaks ---- */
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 1fr 1fr; }
+    .main-grid .col-center { grid-column: span 2; order: -1; }
+  }
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .main-grid { grid-template-columns: 1fr; }
+    .main-grid .col-center { grid-column: auto; order: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="site-header">
+  <h1>🌿 Waste Wise Bengaluru</h1>
+  <div class="subtitle">AI-Powered Waste Allocation System</div>
+</header>
+
+<div class="disclaimer">
+  ⚠ SIMULATED DATA — Not verified BBMP operational data. For demonstration purposes only.
+</div>
+
+<!-- ============================================================
+     STATS CARDS
+     ============================================================ -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-value" id="stat-requests">—</div>
+    <div class="stat-label">Total Requests</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="stat-allocated">—</div>
+    <div class="stat-label">Total Allocated (tons)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="stat-unallocated">—</div>
+    <div class="stat-label">Total Unallocated (tons)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="stat-facilities">—</div>
+    <div class="stat-label">Open / Closed Facilities</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN 3-COLUMN GRID
+     ============================================================ -->
+<div class="main-grid">
+
+  <!-- ---- LEFT COLUMN ---- -->
+  <div class="col-left">
+
+    <!-- Section 1: Request Form -->
+    <div class="panel">
+      <h2>🗂 Waste Request</h2>
+
+      <!-- Error alert -->
+      <div id="form-error" class="alert alert-error hidden">
+        <span id="form-error-msg"></span>
+        <button class="alert-dismiss" onclick="document.getElementById('form-error').classList.add('hidden')">✕</button>
+      </div>
+
+      <form id="alloc-form" onsubmit="submitAllocation(event)">
+        <label for="waste-type">Waste Type</label>
+        <select id="waste-type">
+          <option value="organic">Organic</option>
+          <option value="plastic">Plastic</option>
+          <option value="e-waste">E-Waste</option>
+          <option value="construction">Construction</option>
+          <option value="wet">Wet</option>
+          <option value="dry">Dry</option>
+          <option value="mixed">Mixed</option>
+        </select>
+
+        <label for="quantity">Quantity (tons)</label>
+        <input type="number" id="quantity" min="0.01" step="0.01" value="5" placeholder="e.g. 8">
+
+        <label for="origin">Origin</label>
+        <input type="text" id="origin" value="" placeholder="e.g. Yelahanka">
+
+        <label for="nl-request">Natural Language Request <span style="color:#57606a;font-weight:400">(optional — overrides fields above)</span></label>
+        <textarea id="nl-request" rows="3" placeholder="e.g. Allocate 8 tons of organic waste from Yelahanka"></textarea>
+
+        <p class="form-note">If NL request is provided, it overrides the form fields above.</p>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-block">
+          🚀 Allocate Waste
+        </button>
+      </form>
+    </div>
+
+    <!-- Section 2: Decision Trace (hidden until result) -->
+    <div class="panel hidden" id="trace-panel">
+      <h2>🔍 Decision Trace</h2>
+      <div id="trace-steps"></div>
+      <div id="trace-result" class="trace-result-box hidden"></div>
+      <div id="excess-warning" class="excess-warning hidden"></div>
+      <div id="explanation" class="explanation-text hidden"></div>
+    </div>
+
+    <!-- Section 3: Approach Comparison (hidden until result) -->
+    <div class="panel hidden" id="comparison-panel">
+      <h2>⚖ Approach Comparison</h2>
+      <div id="comparison-content"></div>
+    </div>
+
+  </div>
+
+  <!-- ---- CENTER COLUMN — Facility Table ---- -->
+  <div class="col-center">
+    <div class="panel">
+      <h2>🏭 Facilities</h2>
+      <div class="table-wrap">
+        <table id="facility-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Zone</th>
+              <th>Accepts</th>
+              <th>Total (t)</th>
+              <th>Used (t)</th>
+              <th>Remaining (t)</th>
+              <th>Utilization</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="facility-tbody">
+            <tr><td colspan="9" style="color:#57606a;text-align:center">Loading facilities…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- RIGHT COLUMN ---- -->
+  <div class="col-right">
+
+    <!-- Allocation History -->
+    <div class="panel">
+      <h2>📋 Allocation History <span style="font-weight:400;color:#57606a;font-size:11px">(this session)</span></h2>
+      <div class="table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Qty (t)</th>
+              <th>Origin</th>
+              <th>Facility</th>
+              <th>Status</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr><td colspan="6" style="color:#57606a;text-align:center">No allocations yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Re-planning Result Panel (hidden until closure) -->
+    <div class="panel hidden" id="replan-panel">
+      <h2>🔄 Re-planning Result</h2>
+      <div class="stages-flow" id="replan-stages"></div>
+      <h3>Affected Allocations</h3>
+      <div class="table-wrap" id="replan-affected-wrap"></div>
+      <h3 style="margin-top:12px">New Allocations</h3>
+      <div class="table-wrap" id="replan-new-wrap"></div>
+      <div id="replan-summary" style="font-size:12px;margin-top:10px;color:#57606a;"></div>
+      <div id="replan-explanation" class="explanation-text hidden"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     INLINE JAVASCRIPT
+     ============================================================ -->
+<script>
+  /* ------------------------------------------------------------------ */
+  /* State                                                                */
+  /* ------------------------------------------------------------------ */
+  const history = [];   // in-memory allocation history for this session
+
+  /* ------------------------------------------------------------------ */
+  /* Utility helpers                                                       */
+  /* ------------------------------------------------------------------ */
+  function fmt(n) {
+    if (n === null || n === undefined) return '—';
+    return parseFloat(n).toFixed(2);
+  }
+
+  function utilColor(pct) {
+    if (pct > 90) return '#ef4444';
+    if (pct > 70) return '#e9c46a';
+    return '#2d6a4f';
+  }
+
+  function statusBadge(status) {
+    const s = (status || '').toUpperCase();
+    if (s === 'OPEN')        return '<span class="badge badge-open">OPEN</span>';
+    if (s === 'CLOSED')      return '<span class="badge badge-closed">CLOSED</span>';
+    if (s === 'ALLOCATED')   return '<span class="badge badge-alloc">ALLOCATED</span>';
+    if (s === 'UNALLOCATED') return '<span class="badge badge-unalloc">UNALLOC</span>';
+    if (s === 'REALLOCATED') return '<span class="badge badge-realloc">REALLOCATED</span>';
+    return `<span class="badge">${s}</span>`;
+  }
+
+  function showError(msg) {
+    document.getElementById('form-error-msg').textContent = msg;
+    document.getElementById('form-error').classList.remove('hidden');
+  }
+
+  function clearError() {
+    document.getElementById('form-error').classList.add('hidden');
+  }
+
+  function nowStr() {
+    const d = new Date();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function utilBarHtml(pct) {
+    const c = utilColor(pct);
+    return `
+      <div class="util-bar-wrap">
+        <div class="util-bar-bg">
+          <div class="util-bar-fill" style="width:${Math.min(pct,100)}%;background:${c}"></div>
+        </div>
+        <span class="util-bar-pct" style="color:${c}">${fmt(pct)}%</span>
+      </div>`;
+  }
+
+  function acceptedTags(str) {
+    if (!str) return '—';
+    return str.split(',').map(m => `<span style="background:#e8f5ed;color:#1a4731;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${m.trim()}</span>`).join('');
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Load Stats                                                           */
+  /* ------------------------------------------------------------------ */
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      if (!data.success) return;
+      document.getElementById('stat-requests').textContent   = data.total_requests   ?? '—';
+      document.getElementById('stat-allocated').textContent  = fmt(data.total_allocated_tons);
+      document.getElementById('stat-unallocated').textContent = fmt(data.total_unallocated_tons);
+      document.getElementById('stat-facilities').textContent =
+        `${data.open_facilities ?? '—'} / ${data.closed_facilities ?? '—'}`;
+    } catch (e) {
+      console.warn('loadStats failed:', e);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Load Facilities                                                       */
+  /* ------------------------------------------------------------------ */
+  async function loadFacilities() {
+    try {
+      const res = await fetch('/api/facilities');
+      const data = await res.json();
+      if (!data.success) return;
+      renderFacilityTable(data.facilities || []);
+    } catch (e) {
+      document.getElementById('facility-tbody').innerHTML =
+        '<tr><td colspan="9" style="color:#c0392b;text-align:center">Could not load facilities — is Flask running?</td></tr>';
+    }
+  }
+
+  function renderFacilityTable(facilities) {
+    const tbody = document.getElementById('facility-tbody');
+    if (!facilities.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="color:#57606a;text-align:center">No facilities found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = facilities.map(f => {
+      const total     = parseFloat(f.total_capacity_tons || 0);
+      const used      = parseFloat(f.used_capacity_tons  || 0);
+      const remaining = parseFloat(f.remaining_capacity_tons || 0);
+      const pct       = total > 0 ? (used / total * 100) : 0;
+      const isOpen    = (f.status || '').toUpperCase() === 'OPEN';
+      const closeBtn  = isOpen
+        ? `<button class="btn btn-danger" onclick="closeFacility(${f.id}, '${f.name.replace(/'/g,"\\'")}')">🚫 Close</button>`
+        : '<span style="color:#aaa;font-size:11px">Closed</span>';
+
+      return `<tr>
+        <td><strong>${f.name}</strong></td>
+        <td>${f.zone || '—'}</td>
+        <td>${acceptedTags(f.accepted_materials)}</td>
+        <td>${fmt(total)}</td>
+        <td>${fmt(used)}</td>
+        <td>${fmt(remaining)}</td>
+        <td>${utilBarHtml(pct)}</td>
+        <td>${statusBadge(f.status)}</td>
+        <td>${closeBtn}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Submit Allocation                                                     */
+  /* ------------------------------------------------------------------ */
+  async function submitAllocation(event) {
+    event.preventDefault();
+    clearError();
+
+    const btn      = document.getElementById('submit-btn');
+    const nlText   = document.getElementById('nl-request').value.trim();
+    const wasteType = document.getElementById('waste-type').value;
+    const quantity  = document.getElementById('quantity').value;
+    const origin    = document.getElementById('origin').value.trim();
+
+    // Validation
+    if (!nlText) {
+      if (!origin) { showError('Please enter an origin location.'); return; }
+      if (!quantity || parseFloat(quantity) <= 0) { showError('Please enter a valid quantity > 0.'); return; }
+    }
+
+    // Build body
+    const body = nlText
+      ? { raw_input: nlText }
+      : { waste_type: wasteType, quantity_tons: parseFloat(quantity), origin };
+
+    // Loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Allocating…';
+
+    try {
+      const res  = await fetch('/api/allocate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error || 'Allocation failed.');
+        return;
+      }
+
+      renderDecisionTrace(data);
+      renderComparison(data.comparison);
+      addToHistory(data);
+      await loadStats();
+      await loadFacilities();
+
+    } catch (e) {
+      showError('Network error — is Flask running on port 5000?');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Allocate Waste';
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Render Decision Trace                                                 */
+  /* ------------------------------------------------------------------ */
+  function renderDecisionTrace(data) {
+    const alloc    = data.allocation || {};
+    const trace    = alloc.decision_trace || [];
+    const panel    = document.getElementById('trace-panel');
+    const stepsEl  = document.getElementById('trace-steps');
+    const resultEl = document.getElementById('trace-result');
+    const warnEl   = document.getElementById('excess-warning');
+    const explEl   = document.getElementById('explanation');
+
+    panel.classList.remove('hidden');
+
+    stepsEl.innerHTML = trace.map(step => {
+      const isOk = step.status === '✓';
+      return `<div class="trace-step">
+        <span class="trace-icon">${isOk ? '✅' : '❌'}</span>
+        <div>
+          <div class="trace-step-name">${step.step}</div>
+          <div class="trace-detail">${step.detail}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Result summary box
+    if (alloc.facility || alloc.allocated_tons !== undefined) {
+      const facilityName = (alloc.facility || {}).name || 'N/A';
+      resultEl.classList.remove('hidden');
+      resultEl.innerHTML = `
+        <div class="result-line">
+          <span class="result-label">Allocated: </span>
+          <span class="result-val">${fmt(alloc.allocated_tons)} tons</span>
+        </div>
+        <div class="result-line">
+          <span class="result-label">Unallocated: </span>
+          <span class="result-val">${fmt(alloc.unallocated_tons)} tons</span>
+        </div>
+        <div class="result-line">
+          <span class="result-label">Facility: </span>
+          <span class="result-val">${facilityName}</span>
+        </div>`;
+    } else {
+      resultEl.classList.add('hidden');
+    }
+
+    // Excess demand warning
+    const unalloc = parseFloat(alloc.unallocated_tons || 0);
+    if (unalloc > 0) {
+      warnEl.classList.remove('hidden');
+      warnEl.innerHTML = `⚠ Excess Demand: <strong>${fmt(unalloc)} tons</strong> could not be allocated — insufficient compatible capacity.`;
+    } else {
+      warnEl.classList.add('hidden');
+    }
+
+    // Explanation
+    if (data.explanation) {
+      explEl.classList.remove('hidden');
+      explEl.textContent = data.explanation;
+    } else {
+      explEl.classList.add('hidden');
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Render Approach Comparison                                            */
+  /* ------------------------------------------------------------------ */
+  function renderComparison(comparison) {
+    const panel   = document.getElementById('comparison-panel');
+    const content = document.getElementById('comparison-content');
+    if (!comparison) { panel.classList.add('hidden'); return; }
+
+    panel.classList.remove('hidden');
+
+    const fc = comparison.first_compatible || {};
+    const ca = comparison.capacity_aware   || {};
+
+    function compareBox(title, data) {
+      const fitBadge = data.would_fit_fully
+        ? '<span style="color:#065f46;font-weight:700">Yes ✓</span>'
+        : '<span style="color:#991b1b;font-weight:700">No ✗</span>';
+      return `<div class="compare-box">
+        <h4>${title}</h4>
+        <div class="compare-row"><span class="ck">Facility</span><span class="cv">${data.facility_name || '—'}</span></div>
+        <div class="compare-row"><span class="ck">Remaining</span><span class="cv">${fmt(data.remaining_capacity_tons)} t</span></div>
+        <div class="compare-row"><span class="ck">Utilization</span><span class="cv">${fmt(data.utilization_pct)}%</span></div>
+        <div class="compare-row"><span class="ck">Fits Fully</span><span class="cv">${fitBadge}</span></div>
+      </div>`;
+    }
+
+    if (comparison.same_facility) {
+      content.innerHTML = `
+        ${compareBox('First Compatible', fc)}
+        ${compareBox('Capacity Aware', ca)}
+        <div class="compare-same-banner" style="grid-column:span 2">
+          ✓ Both approaches selected the same facility
+        </div>`;
+      content.style.display = 'grid';
+      content.style.gridTemplateColumns = '1fr 1fr';
+      content.style.gap = '10px';
+    } else {
+      content.innerHTML = `
+        <div class="comparison-grid">
+          ${compareBox('First Compatible', fc)}
+          ${compareBox('Capacity Aware', ca)}
+        </div>`;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Add to Allocation History                                             */
+  /* ------------------------------------------------------------------ */
+  function addToHistory(data) {
+    const alloc    = data.allocation || {};
+    const intake   = data.intake || {};
+    const wasteType = alloc.waste_type || intake.waste_type || '—';
+    const origin    = alloc.origin || intake.origin || '—';
+    const qty       = alloc.allocated_tons;
+    const unalloc   = alloc.unallocated_tons;
+    const facility  = (alloc.facility || {}).name || (unalloc > 0 && qty === 0 ? '—' : '—');
+    const status    = !alloc.success ? 'UNALLOCATED'
+                    : unalloc > 0    ? 'UNALLOCATED'
+                    : 'ALLOCATED';
+    const time = nowStr();
+
+    history.unshift({ wasteType, qty: parseFloat(qty || 0), origin, facility, status, time });
+    if (history.length > 10) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const tbody = document.getElementById('history-tbody');
+    if (!history.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#57606a;text-align:center">No allocations yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = history.map(h => `<tr>
+      <td>${h.wasteType}</td>
+      <td>${fmt(h.qty)}</td>
+      <td>${h.origin}</td>
+      <td>${h.facility || '—'}</td>
+      <td>${statusBadge(h.status)}</td>
+      <td style="color:#57606a">${h.time}</td>
+    </tr>`).join('');
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Close Facility                                                        */
+  /* ------------------------------------------------------------------ */
+  async function closeFacility(facilityId, facilityName) {
+    if (!window.confirm(`Close "${facilityName}"? This will trigger re-planning for all its allocations.`)) return;
+
+    try {
+      const res  = await fetch('/api/close-facility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ facility_id: facilityId }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(`Error closing facility: ${data.error || 'Unknown error'}`);
+        return;
+      }
+
+      renderReplanResult(data.result);
+      await loadStats();
+      await loadFacilities();
+
+    } catch (e) {
+      alert('Network error — is Flask running on port 5000?');
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Render Re-planning Result                                             */
+  /* ------------------------------------------------------------------ */
+  function renderReplanResult(result) {
+    if (!result) return;
+    const panel = document.getElementById('replan-panel');
+    panel.classList.remove('hidden');
+
+    // Stages flow
+    const stagesEl = document.getElementById('replan-stages');
+    const stages = result.stages || [];
+    stagesEl.innerHTML = stages.map((s, i) => `
+      ${i > 0 ? '<div class="stage-arrow">→</div>' : ''}
+      <div class="stage-card">
+        <div class="stage-title">${s.stage}</div>
+        <div class="stage-detail">${s.detail}</div>
+      </div>`).join('');
+
+    // Affected allocations table
+    const affected = result.affected_allocations || [];
+    document.getElementById('replan-affected-wrap').innerHTML = affectedTableHtml(affected, 'No affected allocations');
+
+    // New allocations table
+    const newAllocs = result.new_allocations || [];
+    document.getElementById('replan-new-wrap').innerHTML = newAllocTableHtml(newAllocs);
+
+    // Summary
+    document.getElementById('replan-summary').innerHTML =
+      `<strong>${fmt(result.total_reallocated_tons)} tons</strong> reallocated — ` +
+      `<strong>${fmt(result.total_unallocated_tons)} tons</strong> unallocated`;
+
+    // Explanation
+    const explEl = document.getElementById('replan-explanation');
+    if (result.explanation) {
+      explEl.classList.remove('hidden');
+      explEl.textContent = result.explanation;
+    } else {
+      explEl.classList.add('hidden');
+    }
+
+    // Scroll re-plan panel into view
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function affectedTableHtml(allocations, emptyMsg) {
+    if (!allocations.length) return `<p style="font-size:12px;color:#57606a;padding:4px 0">${emptyMsg}</p>`;
+    return `<table style="font-size:11px;width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">ID</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Type</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Qty (t)</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Origin</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Status</th>
+      </tr></thead>
+      <tbody>${allocations.map(a => `<tr>
+        <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${a.id}</td>
+        <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${a.waste_type}</td>
+        <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${fmt(a.quantity_tons)}</td>
+        <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${a.origin || '—'}</td>
+        <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${statusBadge(a.status)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  function newAllocTableHtml(allocations) {
+    if (!allocations.length) return `<p style="font-size:12px;color:#57606a;padding:4px 0">No new allocations</p>`;
+    return `<table style="font-size:11px;width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Type</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Qty (t)</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Facility</th>
+        <th style="background:#2d6a4f;color:#fff;padding:4px 8px">Status</th>
+      </tr></thead>
+      <tbody>${allocations.map(a => {
+        const f = (a.facility || {}).name || '—';
+        const st = a.success ? 'ALLOCATED' : 'UNALLOCATED';
+        return `<tr>
+          <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${a.waste_type || '—'}</td>
+          <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${fmt(a.allocated_tons)}</td>
+          <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${f}</td>
+          <td style="padding:3px 8px;border-bottom:1px solid #eef2f0">${statusBadge(st)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Init on page load                                                     */
+  /* ------------------------------------------------------------------ */
+  document.addEventListener('DOMContentLoaded', () => {
+    loadStats();
+    loadFacilities();
+  });
+</script>
+
+</body>
+</html>
