@@ -101,6 +101,7 @@ def dashboard():
     return render_template(
         'admin/dashboard.html',
         stats=stats,
+        facilities=facilities,
         open_facilities=open_facilities,
         closed_facilities=closed_facilities,
         agent_logs=agent_logs,
@@ -165,11 +166,14 @@ def report_manage(report_id):
     report = db.get_report_by_id(report_id)
     if not report:
         abort(404)
-    audit_logs = db.get_audit_logs_for_report(report_id)
+    # Enrich with submitter username
+    user_dict = db.get_user_by_id(report['user_id'])
+    report['citizen_username'] = user_dict['username'] if user_dict else f"citizen #{report['user_id']}"
+    audit_trail = db.get_audit_logs_for_report(report_id)
     return render_template(
         'admin/report_manage.html',
         report=report,
-        audit_logs=audit_logs,
+        audit_trail=audit_trail,
         valid_statuses=VALID_STATUSES,
     )
 
@@ -271,6 +275,36 @@ def toggle_user(user_id):
     )
 
     return jsonify({"success": True, "is_active": new_active})
+
+
+# ---------------------------------------------------------------------------
+# Facilities
+# ---------------------------------------------------------------------------
+
+@admin_bp.route('/facility/<int:facility_id>/toggle', methods=['POST'])
+@login_required
+@admin_required
+def toggle_facility(facility_id):
+    facility = db.get_facility_by_id(facility_id)
+    if not facility:
+        flash('Facility not found.', 'error')
+        return redirect(url_for('admin.dashboard'))
+
+    new_status = 'CLOSED' if facility['status'] == 'OPEN' else 'OPEN'
+    db.set_facility_status(facility_id, new_status)
+
+    db.log_audit(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='toggle_facility_status',
+        entity_type='facility',
+        entity_id=str(facility_id),
+        old_status=facility['status'],
+        new_status=new_status,
+    )
+
+    flash(f'Facility "{facility["name"]}" is now {new_status}.', 'success')
+    return redirect(url_for('admin.dashboard'))
 
 
 # ---------------------------------------------------------------------------

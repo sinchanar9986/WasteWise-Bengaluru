@@ -63,7 +63,7 @@
         <div class="detail-field" style="grid-column:span 2;"><dt>Description</dt><dd>{{ report.description or '—' }}</dd></div>
         {% if report.notes %}<div class="detail-field" style="grid-column:span 2;"><dt>Notes</dt><dd>{{ report.notes }}</dd></div>{% endif %}
         {% if report.collection_date %}
-        <div class="detail-field"><dt>Collection Date</dt><dd>{{ report.(collection_date or '')[:10] }}</dd></div>
+        <div class="detail-field"><dt>Collection Date</dt><dd>{{ (report.collection_date or '')[:10] }}</dd></div>
         {% endif %}
       </dl>
     </div>
@@ -106,7 +106,7 @@
     <div class="card section-gap">
       <div class="card-title">✏️ Update Status</div>
       <form method="POST"
-            action="{{ url_for('admin.report_manage', report_id=report.id) }}"
+            action="{{ url_for('admin.update_report_status', report_id=report.report_id) }}"
             data-status-form>
         {% if csrf_token is defined %}
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

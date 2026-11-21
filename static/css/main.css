@@ -769,6 +769,15 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   margin-top: 10px;
 }
 
+/* ---- Facility table rows ---- */
+tr.facility-closed td {
+  background: #e9ecef !important;
+  color: #6c757d !important;
+  opacity: 0.7;
+}
+tr.facility-closed:hover td { background: #dee2e6 !important; }
+tr.facility-open td { background: inherit; color: inherit; }
+
 /* ---- Expandable rows ---- */
 .expandable-row td { cursor: pointer; }
 .detail-row { display: none; background: #fafffe; }
